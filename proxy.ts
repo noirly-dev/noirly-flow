@@ -3,12 +3,13 @@ import { auth } from "@/auth";
 
 export const proxy = auth((request) => {
   const { pathname } = request.nextUrl;
+  const isLanding = pathname === "/";
   const isLogin = pathname === "/login";
   const isLoginPopup =
     pathname === "/login/popup" || pathname === "/login/popup-complete";
   const isAuthApi = pathname.startsWith("/api/auth");
 
-  if (!request.auth && !isLogin && !isLoginPopup && !isAuthApi) {
+  if (!request.auth && !isLanding && !isLogin && !isLoginPopup && !isAuthApi) {
     const login = new URL("/login", request.nextUrl.origin);
     if (pathname.startsWith("/invite/")) {
       login.searchParams.set("next", pathname);

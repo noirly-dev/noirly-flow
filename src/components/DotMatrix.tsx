@@ -22,3 +22,13 @@ export function DotMatrixClock({ className = "" }: { className?: string }) {
 
   return <span className={`matrix-numeral ${className}`}>{time}</span>;
 }
+
+export function DotMatrixNumeral({
+  children,
+  className = "",
+}: {
+  children: string | number;
+  className?: string;
+}) {
+  return <span className={`matrix-numeral ${className}`}>{children}</span>;
+}

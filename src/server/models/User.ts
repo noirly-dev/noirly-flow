@@ -27,6 +27,12 @@ const userSchema = new Schema(
     emailVerified: { type: Boolean, default: false },
     displayName: { type: String, required: true, trim: true },
     avatarUrl: { type: String, default: null },
+    profile: {
+      displayName: { type: String, default: null, trim: true },
+      title: { type: String, default: null, trim: true },
+      timezone: { type: String, default: null, trim: true },
+      bio: { type: String, default: null, trim: true },
+    },
   },
   { timestamps: true },
 );

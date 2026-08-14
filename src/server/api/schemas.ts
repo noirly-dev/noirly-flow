@@ -124,3 +124,23 @@ export const acceptInviteBodySchema = z.object({
 export const createCommentBodySchema = z.object({
   body: z.string().trim().min(1).max(8000),
 });
+
+const optionalText = (max: number) =>
+  z
+    .union([z.string().max(max), z.null()])
+    .optional()
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      if (value === null) return null;
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    });
+
+export const updateMeBodySchema = z.object({
+  profile: z.object({
+    displayName: optionalText(80),
+    title: optionalText(80),
+    timezone: optionalText(80),
+    bio: optionalText(280),
+  }),
+});

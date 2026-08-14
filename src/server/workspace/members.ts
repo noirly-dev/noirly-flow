@@ -11,6 +11,7 @@ import {
 } from "@/src/server/models";
 import { ApiError } from "@/src/server/api/http";
 import type { MemberRole } from "@/src/core/models/enums";
+import { resolveFlowDisplayName } from "@/src/server/users/display-name";
 
 function oid(id: string) {
   return new Types.ObjectId(id);
@@ -60,7 +61,7 @@ export async function listMembers(workspaceId: string): Promise<MemberView[]> {
     return {
       userId: membership.userId.toString(),
       email: user?.email ?? "",
-      displayName: user?.displayName ?? "Unknown",
+      displayName: resolveFlowDisplayName(user),
       role: membership.role as MemberRole,
     };
   });

@@ -34,9 +34,39 @@ export const api = {
         id: string;
         email: string;
         displayName: string;
-        identitySub: string;
+        identityName: string;
+        profile: {
+          displayName: string | null;
+          title: string | null;
+          timezone: string | null;
+          bio: string | null;
+        };
       };
     }>("/api/me");
+  },
+  updateMe(profile: {
+    displayName?: string | null;
+    title?: string | null;
+    timezone?: string | null;
+    bio?: string | null;
+  }) {
+    return request<{
+      user: {
+        id: string;
+        email: string;
+        displayName: string;
+        identityName: string;
+        profile: {
+          displayName: string | null;
+          title: string | null;
+          timezone: string | null;
+          bio: string | null;
+        };
+      };
+    }>("/api/me", {
+      method: "PATCH",
+      body: JSON.stringify({ profile }),
+    });
   },
   listWorkspaces() {
     return request<{ workspaces: Workspace[] }>("/api/workspaces");

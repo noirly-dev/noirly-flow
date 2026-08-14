@@ -93,6 +93,13 @@ export type Comment = {
   deletedAt: string | null;
 };
 
+export type FlowProfile = {
+  displayName: string | null;
+  title: string | null;
+  timezone: string | null;
+  bio: string | null;
+};
+
 export type ActivityEvent = {
   id: string;
   workspaceId: string;

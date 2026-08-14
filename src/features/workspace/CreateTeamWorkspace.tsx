@@ -58,7 +58,7 @@ export function CreateTeamWorkspace() {
           disabled={createMutation.isPending || !name.trim()}
           className="h-8 flex-1 bg-ink text-xs font-semibold text-canvas disabled:opacity-50"
         >
-          Create
+          {createMutation.isPending ? "Saving…" : "Create"}
         </button>
         <button
           type="button"

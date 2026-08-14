@@ -46,11 +46,11 @@ export function WorkspaceShell({
 
   return (
     <WorkspaceRoleProvider role={role}>
-      <div className="flex min-h-full min-w-0 flex-1 flex-col lg:flex-row">
-        <div className="border-b border-dashed border-hairline p-3 lg:w-52 lg:shrink-0 lg:border-b-0 lg:border-r">
+      <div className="flex min-h-dvh min-w-0 flex-1 flex-col lg:flex-row">
+        <div className="border-b border-dashed border-hairline p-3 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-52 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
           <ProjectNav workspaceId={workspaceId} />
         </div>
-        <div className="min-w-0 flex-1">{children}</div>
+        <div className="min-h-0 min-w-0 flex-1">{children}</div>
       </div>
     </WorkspaceRoleProvider>
   );

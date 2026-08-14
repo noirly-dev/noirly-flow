@@ -104,7 +104,7 @@ export function ProjectNav({ workspaceId }: Props) {
             disabled={createMutation.isPending || !name.trim()}
             className="h-8 cursor-pointer bg-ink px-2 text-xs font-semibold text-canvas disabled:opacity-50"
           >
-            Add
+            {createMutation.isPending ? "Saving…" : "Add"}
           </button>
         </form>
       ) : null}

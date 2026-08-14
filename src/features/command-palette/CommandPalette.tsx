@@ -4,11 +4,13 @@ import { Command } from "cmdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import { useUIStore } from "@/src/stores/ui-store";
 import type { Workspace } from "@/src/core/sync/types";
 import { can } from "@/src/core/permissions/can";
+import { FlowBusyScreen } from "@/src/components/FlowBusyScreen";
 
 const itemClass =
   "flex cursor-pointer items-center justify-between px-3 py-2 text-sm text-ink data-[selected=true]:bg-ink data-[selected=true]:text-canvas";
@@ -29,6 +31,7 @@ export function CommandPalette({ workspaces }: Props) {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const activeWorkspaceId = pathname.startsWith("/w/")
     ? pathname.split("/")[2]
@@ -47,6 +50,7 @@ export function CommandPalette({ workspaces }: Props) {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
+        if (busy) return;
         toggle();
         return;
       }
@@ -71,15 +75,14 @@ export function CommandPalette({ workspaces }: Props) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setOpen, toggle]);
+  }, [setOpen, toggle, busy]);
 
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      setDebounced("");
-      setError(null);
-    }
-  }, [open]);
+    if (open || busy) return;
+    setQuery("");
+    setDebounced("");
+    setError(null);
+  }, [open, busy]);
 
   const workspaceQuery = useQuery({
     queryKey: activeWorkspaceId
@@ -108,9 +111,12 @@ export function CommandPalette({ workspaces }: Props) {
   );
 
   async function createTask(title: string) {
-    if (!activeWorkspaceId || !title || !canWrite) return;
+    if (!activeWorkspaceId || !title || !canWrite || busy) return;
+    setBusy("Saving task");
+    setError(null);
     try {
-      const { projects } = workspaceQuery.data ?? (await api.getWorkspace(activeWorkspaceId));
+      const { projects } =
+        workspaceQuery.data ?? (await api.getWorkspace(activeWorkspaceId));
       const projectId = onInbox
         ? null
         : activeProjectId || projects[0]?.id || null;
@@ -118,7 +124,7 @@ export function CommandPalette({ workspaces }: Props) {
         title,
         projectId,
       });
-      await queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["tasks", activeWorkspaceId],
       });
       setOpen(false);
@@ -129,17 +135,21 @@ export function CommandPalette({ workspaces }: Props) {
       router.push(href);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create task");
+    } finally {
+      setBusy(null);
     }
   }
 
   async function createProject(name: string) {
-    if (!activeWorkspaceId || !name || !canWrite) return;
+    if (!activeWorkspaceId || !name || !canWrite || busy) return;
+    setBusy("Saving project");
+    setError(null);
     try {
       const { project } = await api.createProject(activeWorkspaceId, { name });
-      await queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: qk.projects(activeWorkspaceId),
       });
-      await queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: qk.workspace(activeWorkspaceId),
       });
       setOpen(false);
@@ -149,19 +159,29 @@ export function CommandPalette({ workspaces }: Props) {
       router.push(`/w/${activeWorkspaceId}/p/${project.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create project");
+    } finally {
+      setBusy(null);
     }
   }
 
   function go(href: string) {
+    if (busy) return;
     setOpen(false);
     useUIStore.getState().setPendingHref(href.split("?")[0] ?? href);
     router.push(href);
   }
 
   return (
+    <>
+      {busy
+        ? createPortal(<FlowBusyScreen label={busy} />, document.body)
+        : null}
     <Command.Dialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(next) => {
+        if (busy) return;
+        setOpen(next);
+      }}
       label="Command palette"
       overlayClassName="fixed inset-0 z-50 bg-ink/50"
       contentClassName="fixed left-1/2 top-[12vh] z-50 w-[min(36rem,calc(100%-2rem))] -translate-x-1/2 overflow-hidden border border-dashed border-hairline bg-surface"
@@ -169,18 +189,31 @@ export function CommandPalette({ workspaces }: Props) {
       <Command.Input
         value={query}
         onValueChange={setQuery}
+        disabled={Boolean(busy)}
         placeholder="Create a task, search, or jump…"
-        className="h-12 w-full border-b border-dashed border-hairline bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted"
+        className="h-12 w-full border-b border-dashed border-hairline bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted disabled:opacity-50"
       />
       <Command.List className="max-h-80 overflow-y-auto p-2">
         <Command.Empty className="px-3 py-6 text-center text-sm text-muted">
-          No results.
+          {searchQuery.isFetching
+            ? "Searching…"
+            : workspaceQuery.isFetching
+              ? "Loading…"
+              : "No results."}
         </Command.Empty>
+
+        {searchQuery.isFetching && debounced.length >= 2 ? (
+          <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-muted">
+            <span className="busy-dots mr-2 text-ink">···</span>
+            Searching
+          </p>
+        ) : null}
 
         {createTitle && canWrite ? (
           <Command.Group heading="Actions" className={headingClass}>
             <Command.Item
               value={`create-task ${createTitle}`}
+              disabled={Boolean(busy)}
               onSelect={() => void createTask(createTitle)}
               className={itemClass}
             >
@@ -191,6 +224,7 @@ export function CommandPalette({ workspaces }: Props) {
             </Command.Item>
             <Command.Item
               value={`create-project ${createTitle}`}
+              disabled={Boolean(busy)}
               onSelect={() => void createProject(createTitle)}
               className={itemClass}
             >
@@ -271,11 +305,17 @@ export function CommandPalette({ workspaces }: Props) {
         <p className="border-t border-dashed border-hairline px-4 py-2 text-xs text-ink">
           {error}
         </p>
+      ) : busy ? (
+        <p className="border-t border-dashed border-hairline px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-muted">
+          <span className="busy-dots mr-2 text-ink">···</span>
+          {busy}
+        </p>
       ) : (
         <p className="border-t border-dashed border-hairline px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-muted">
           Esc to close · Enter to run
         </p>
       )}
     </Command.Dialog>
+    </>
   );
 }

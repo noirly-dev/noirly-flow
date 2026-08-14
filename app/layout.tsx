@@ -27,9 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full min-h-dvh antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-canvas font-sans text-ink">
+      <body className="flex min-h-dvh flex-col bg-canvas font-sans text-ink">
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

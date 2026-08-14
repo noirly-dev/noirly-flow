@@ -4,24 +4,29 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  KeyboardSensor,
   closestCorners,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
+  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { BoardColumn, Task } from "@/src/core/sync/types";
 import {
   buildReorderMoves,
+  columnDroppableId,
   findContainer,
   flattenGroups,
   groupTasksByColumn,
@@ -66,16 +71,27 @@ export function TaskBoard({
     groupTasksByColumn(tasks, boardColumns),
   );
   const [activeId, setActiveId] = useState<string | null>(null);
+  const draggingRef = useRef(false);
 
   useEffect(() => {
+    if (draggingRef.current) return;
     setGroups(groupTasksByColumn(tasks, boardColumns));
   }, [tasks, boardColumns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  const collisionDetection: CollisionDetection = (args) => {
+    const pointerHits = pointerWithin(args);
+    if (pointerHits.length > 0) return pointerHits;
+    return closestCorners(args);
+  };
 
   const activeTask = activeId
     ? flattenGroups(groups).find((task) => task.id === activeId) ?? null
@@ -83,6 +99,7 @@ export function TaskBoard({
 
   function handleDragStart(event: DragStartEvent) {
     if (!canWrite) return;
+    draggingRef.current = true;
     setActiveId(String(event.active.id));
   }
 
@@ -105,8 +122,15 @@ export function TaskBoard({
     });
   }
 
+  function handleDragCancel() {
+    draggingRef.current = false;
+    setActiveId(null);
+    setGroups(groupTasksByColumn(tasks, boardColumns));
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    draggingRef.current = false;
     setActiveId(null);
     if (!canWrite) return;
     if (!over) {
@@ -160,10 +184,11 @@ export function TaskBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="grid gap-4 md:grid-cols-3">
         {boardColumns.map((column) => (
@@ -208,7 +233,7 @@ function BoardColumnDroppable({
   onOpenTask: (taskId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: columnId,
+    id: columnDroppableId(columnId),
     disabled: !canWrite,
   });
   const ids = tasks.map((task) => task.id);
@@ -267,7 +292,10 @@ function SortableTaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id, disabled: !canWrite });
+  } = useSortable({
+    id: task.id,
+    disabled: !canWrite || task.id.startsWith("tmp-"),
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -280,23 +308,23 @@ function SortableTaskCard({
       style={style}
       className={`border border-dashed border-hairline bg-canvas p-3 ${
         isDragging ? "opacity-40" : ""
-      }`}
+      } ${canWrite && !task.id.startsWith("tmp-") ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
+      {...(canWrite && !task.id.startsWith("tmp-")
+        ? { ...attributes, ...listeners }
+        : {})}
     >
       <div className="flex items-start gap-2">
         {canWrite ? (
-          <button
-            type="button"
-            aria-label="Drag task"
-            className="mt-0.5 cursor-grab touch-none px-1 text-muted active:cursor-grabbing"
-            {...attributes}
-            {...listeners}
+          <span
+            aria-hidden
+            className="mt-0.5 select-none px-1 text-muted"
           >
             ⋮⋮
-          </button>
+          </span>
         ) : null}
         <button
           type="button"
-          className="min-w-0 flex-1 text-left"
+          className="min-w-0 flex-1 cursor-pointer text-left"
           onClick={() => onOpenTask(task.id)}
         >
           <p className="text-sm text-ink">{task.title}</p>
@@ -312,8 +340,9 @@ function SortableTaskCard({
       {canWrite ? (
         <button
           type="button"
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onDelete(task.id)}
-          className="mt-2 border border-dashed border-hairline px-2 py-1 text-[11px] text-muted hover:border-ink hover:text-ink"
+          className="mt-2 cursor-pointer border border-dashed border-hairline px-2 py-1 text-[11px] text-muted hover:border-ink hover:text-ink"
         >
           Delete
         </button>

@@ -115,6 +115,7 @@ describe("moveTaskInGroups + buildReorderMoves", () => {
     );
 
     expect(findContainer(groups, "a")).toBe("todo");
+    expect(findContainer(groups, "column:done")).toBe("done");
     const next = moveTaskInGroups(groups, "a", "done");
     expect(next).not.toBeNull();
     expect(next!["todo"]?.map((item) => item.id)).toEqual(["b"]);

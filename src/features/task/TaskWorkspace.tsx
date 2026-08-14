@@ -155,6 +155,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
     queryKey: qk.tasks(workspaceId, filters),
     queryFn: () => api.listTasks(workspaceId, filters),
     refetchInterval,
+    refetchIntervalInBackground: false,
   });
 
   const projectQuery = useQuery({
@@ -190,21 +191,76 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
     queryClient.invalidateQueries({ queryKey: ["tasks", workspaceId] });
 
   const createMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (input: {
+      title: string;
+      priority: TaskPriority;
+      dueAt: string | null;
+    }) =>
       api.createTask(workspaceId, {
-        title,
+        title: input.title,
         projectId,
-        priority,
-        dueAt: dateInputToIso(dueDate),
+        priority: input.priority,
+        dueAt: input.dueAt,
       }),
-    onSuccess: () => {
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks", workspaceId] });
+      const previous = queryClient.getQueriesData<{ tasks: Task[] }>({
+        queryKey: ["tasks", workspaceId],
+      });
+      const now = new Date().toISOString();
+      const optimistic: Task = {
+        id: `tmp-${crypto.randomUUID()}`,
+        workspaceId,
+        projectId,
+        columnId: null,
+        title: input.title,
+        description: null,
+        status: "todo",
+        priority: input.priority,
+        dueAt: input.dueAt,
+        startAt: null,
+        completedAt: null,
+        position: Date.now(),
+        assigneeIds: [],
+        tagIds: [],
+        parentTaskId: null,
+        recurrence: null,
+        checklist: [],
+        createdById: meQuery.data?.user.id ?? "",
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      queryClient.setQueriesData<{ tasks: Task[] }>(
+        { queryKey: ["tasks", workspaceId] },
+        (old) => (old ? { tasks: [optimistic, ...old.tasks] } : old),
+      );
       setTitle("");
       setPriority("none");
       setDueDate("");
       setError(null);
-      void invalidate();
+      return { previous, optimisticId: optimistic.id };
     },
-    onError: (err: Error) => setError(err.message),
+    onSuccess: (data, _input, context) => {
+      queryClient.setQueriesData<{ tasks: Task[] }>(
+        { queryKey: ["tasks", workspaceId] },
+        (old) => {
+          if (!old) return old;
+          return {
+            tasks: old.tasks.map((task) =>
+              task.id === context?.optimisticId ? data.task : task,
+            ),
+          };
+        },
+      );
+    },
+    onError: (err: Error, _input, context) => {
+      for (const [key, data] of context?.previous ?? []) {
+        queryClient.setQueryData(key, data);
+      }
+      setError(err.message);
+    },
+    onSettled: () => void invalidate(),
   });
 
   const updateMutation = useMutation({
@@ -349,8 +405,13 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
         className="flex flex-col gap-3 border border-dashed border-hairline bg-surface p-4 lg:flex-row lg:items-center"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!title.trim()) return;
-          createMutation.mutate();
+          const nextTitle = title.trim();
+          if (!nextTitle) return;
+          createMutation.mutate({
+            title: nextTitle,
+            priority,
+            dueAt: dateInputToIso(dueDate),
+          });
         }}
       >
         <input
@@ -378,7 +439,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
         />
         <button
           type="submit"
-          disabled={createMutation.isPending || !title.trim()}
+          disabled={!title.trim()}
           className="h-11 bg-ink px-4 text-sm font-semibold text-canvas disabled:opacity-50"
         >
           Add
@@ -654,5 +715,5 @@ function useTaskRefetchInterval(): number {
     return client.onStatus(setStatus);
   }, [client]);
 
-  return status === "ready" ? 60_000 : 5_000;
+  return status === "ready" ? 60_000 : 30_000;
 }

@@ -380,18 +380,22 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
 
     async createTask(input: CreateTaskInput) {
       return withDb(async () => {
-        await requireMembership(userId, input.workspaceId, "member");
-
         let columnId = input.columnId ? oid(input.columnId) : null;
         let status: TaskStatus = input.status ?? "todo";
 
+        const [, mappedColumn] = await Promise.all([
+          requireMembership(userId, input.workspaceId, "member"),
+          input.projectId && !columnId
+            ? BoardColumn.findOne({
+                projectId: oid(input.projectId),
+                statusMapped: status,
+              }).lean()
+            : Promise.resolve(null),
+        ]);
+
         if (input.projectId && !columnId) {
-          const column = await BoardColumn.findOne({
-            projectId: oid(input.projectId),
-            statusMapped: status,
-          }).lean();
-          if (column) {
-            columnId = column._id;
+          if (mappedColumn) {
+            columnId = mappedColumn._id;
           } else {
             const first = await BoardColumn.findOne({
               projectId: oid(input.projectId),
@@ -433,13 +437,15 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
           createdById: oid(userId),
         });
 
-        await recordActivity({
+        void recordActivity({
           workspaceId: task.workspaceId,
           projectId: task.projectId,
           taskId: task._id,
           actorId: userId,
           verb: "task.created",
           metadata: { title: task.title },
+        }).catch((error) => {
+          console.error("recordActivity failed", error);
         });
 
         return mapTask(task);
@@ -652,11 +658,30 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
           "member",
         );
 
+        const tasks = await TaskModel.find({
+          _id: { $in: input.moves.map((move) => oid(move.taskId)) },
+          projectId: oid(input.projectId),
+          deletedAt: null,
+        });
+        const byId = new Map(
+          tasks.map((task) => [task._id.toString(), task] as const),
+        );
+
+        const ops: Array<{
+          updateOne: {
+            filter: { _id: Types.ObjectId };
+            update: { $set: Record<string, unknown> };
+          };
+        }> = [];
+        const spawnJobs: Array<{
+          source: HydratedDocument<TaskDocument>;
+          rule: RecurrenceRule;
+        }> = [];
         const updated: Task[] = [];
+
         for (const move of input.moves) {
-          const task = await TaskModel.findById(move.taskId);
-          if (!task || task.deletedAt) continue;
-          if (task.projectId?.toString() !== input.projectId) continue;
+          const task = byId.get(move.taskId);
+          if (!task) continue;
 
           const becomingDone =
             move.status === "done" && task.status !== "done";
@@ -664,26 +689,53 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
             ? asRecurrenceRule(task.recurrence)
             : null;
 
-          task.columnId = move.columnId ? oid(move.columnId) : null;
+          const nextColumnId = move.columnId ? oid(move.columnId) : null;
+          const nextCompletedAt = move.status
+            ? move.status === "done"
+              ? (task.completedAt ?? new Date())
+              : null
+            : task.completedAt;
+
+          const $set: Record<string, unknown> = {
+            columnId: nextColumnId,
+            position: move.position,
+          };
+          if (move.status) {
+            $set.status = move.status;
+            $set.completedAt = nextCompletedAt;
+          }
+          if (spawnRule) {
+            $set.recurrence = null;
+          }
+
+          ops.push({
+            updateOne: {
+              filter: { _id: task._id },
+              update: { $set },
+            },
+          });
+
+          task.columnId = nextColumnId;
           task.position = move.position;
           if (move.status) {
             task.status = move.status;
-            if (move.status === "done" && !task.completedAt) {
-              task.completedAt = new Date();
-            }
-            if (move.status !== "done") {
-              task.completedAt = null;
-            }
+            task.completedAt = nextCompletedAt;
           }
           if (spawnRule) {
             task.recurrence = null;
-          }
-          await task.save();
-          if (spawnRule) {
-            await spawnNextOccurrence(task, spawnRule, userId);
+            spawnJobs.push({ source: task, rule: spawnRule });
           }
           updated.push(mapTask(task));
         }
+
+        if (ops.length > 0) {
+          await TaskModel.bulkWrite(ops);
+        }
+        await Promise.all(
+          spawnJobs.map((job) =>
+            spawnNextOccurrence(job.source, job.rule, userId),
+          ),
+        );
         return updated;
       });
     },

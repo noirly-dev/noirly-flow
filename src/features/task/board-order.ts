@@ -74,12 +74,17 @@ export function densePositions(count: number): number[] {
   return Array.from({ length: count }, (_, index) => (index + 1) * 1000);
 }
 
+export function columnDroppableId(columnId: string): string {
+  return `column:${columnId}`;
+}
+
 export function findContainer(
   groups: ColumnTasks,
   id: string | null,
 ): string | null {
   if (!id) return null;
-  if (id in groups) return id;
+  const asColumn = id.startsWith("column:") ? id.slice("column:".length) : id;
+  if (asColumn in groups) return asColumn;
   for (const [columnId, columnTasks] of Object.entries(groups)) {
     if (columnTasks.some((task) => task.id === id)) {
       return columnId;
@@ -117,7 +122,7 @@ export function moveTaskInGroups(
     return next;
   }
 
-  if (overId === overContainer) {
+  if (overId === overContainer || overId === `column:${overContainer}`) {
     next[overContainer].push(moved);
     return next;
   }

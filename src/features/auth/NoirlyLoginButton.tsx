@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { FlowBusyScreen } from "@/src/components/FlowBusyScreen";
 
 const AUTH_MESSAGE = "noirly-auth";
 const AUTH_STORAGE_KEY = "noirly-auth";
@@ -13,6 +15,11 @@ export function NoirlyLoginButton({ redirectTo = "/" }: { redirectTo?: string })
   const target = safeNext(redirectTo);
   const [error, setError] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     function finish(next: string) {
@@ -51,6 +58,7 @@ export function NoirlyLoginButton({ redirectTo = "/" }: { redirectTo?: string })
 
   function openIdentityPopup() {
     setError(null);
+    setWaiting(true);
     const width = 480;
     const height = 740;
     const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
@@ -62,10 +70,10 @@ export function NoirlyLoginButton({ redirectTo = "/" }: { redirectTo?: string })
       `popup=yes,width=${width},height=${height},left=${left},top=${top}`,
     );
     if (!popup) {
+      setWaiting(false);
       setError("Allow popups for Noirly Flow, then try again.");
       return;
     }
-    setWaiting(true);
     popup.focus();
     const timer = window.setInterval(() => {
       try {
@@ -82,25 +90,11 @@ export function NoirlyLoginButton({ redirectTo = "/" }: { redirectTo?: string })
 
   return (
     <div className="flex flex-col gap-3">
-      {waiting ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-canvas/85"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <div className="flex flex-col items-center gap-5 px-6">
-            <span className="busy-dots font-mono text-4xl font-bold tracking-[0.45em] text-ink">
-              ···
-            </span>
-            <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-muted">
-              Waiting for Identity
-            </p>
-          </div>
-        </div>
-      ) : null}
+      {mounted && waiting
+        ? createPortal(<FlowBusyScreen label="Waiting for Identity" />, document.body)
+        : null}
       <button
-        className="flex h-12 w-full items-center justify-center bg-panel-ink px-5 font-mono text-[11px] font-semibold tracking-[0.16em] text-panel uppercase transition-colors hover:bg-transparent hover:text-panel-ink hover:outline hover:outline-1 hover:outline-dashed hover:outline-panel-ink disabled:opacity-50"
+        className="flex h-12 w-full cursor-pointer items-center justify-center bg-panel-ink px-5 font-mono text-[11px] font-semibold tracking-[0.16em] text-panel uppercase transition-colors hover:bg-transparent hover:text-panel-ink hover:outline hover:outline-1 hover:outline-dashed hover:outline-panel-ink disabled:cursor-not-allowed disabled:opacity-50"
         type="button"
         onClick={openIdentityPopup}
         disabled={waiting}

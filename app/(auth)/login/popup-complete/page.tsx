@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { FlowBusyScreen } from "@/src/components/FlowBusyScreen";
 
 const AUTH_MESSAGE = "noirly-auth";
 const AUTH_STORAGE_KEY = "noirly-auth";
@@ -30,26 +30,12 @@ function PopupCompleteInner() {
     window.location.replace(next);
   }, [next]);
 
-  return (
-    <main className="flex min-h-full flex-1 items-center justify-center px-6">
-      <p className="font-mono text-[11px] tracking-[0.16em] uppercase text-muted">
-        Signed in. Returning to Flow…
-      </p>
-    </main>
-  );
+  return <FlowBusyScreen label="Signed in. Returning to Flow" />;
 }
 
 export default function LoginPopupCompletePage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-full flex-1 items-center justify-center px-6">
-          <p className="font-mono text-[11px] tracking-[0.16em] uppercase text-muted">
-            Finishing sign-in…
-          </p>
-        </main>
-      }
-    >
+    <Suspense fallback={<FlowBusyScreen label="Finishing sign-in" />}>
       <PopupCompleteInner />
     </Suspense>
   );

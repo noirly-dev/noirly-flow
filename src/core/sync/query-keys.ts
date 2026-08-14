@@ -1,0 +1,13 @@
+export const qk = {
+  workspaces: ["workspaces"] as const,
+  workspace: (id: string) => ["workspaces", id] as const,
+  projects: (workspaceId: string) => ["projects", workspaceId] as const,
+  project: (projectId: string) => ["project", projectId] as const,
+  tasks: (workspaceId: string, filters: Record<string, string | undefined>) =>
+    ["tasks", workspaceId, filters] as const,
+  task: (taskId: string) => ["task", taskId] as const,
+  members: (workspaceId: string) => ["members", workspaceId] as const,
+  comments: (taskId: string) => ["comments", taskId] as const,
+  activity: (workspaceId: string, taskId?: string) =>
+    ["activity", workspaceId, taskId ?? "all"] as const,
+};

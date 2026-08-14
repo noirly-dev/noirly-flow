@@ -1,0 +1,305 @@
+"use client";
+
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCorners,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useEffect, useMemo, useState } from "react";
+import type { BoardColumn, Task } from "@/src/core/sync/types";
+import {
+  buildReorderMoves,
+  findContainer,
+  flattenGroups,
+  groupTasksByColumn,
+  moveTaskInGroups,
+  resolveBoardColumns,
+  type ColumnTasks,
+} from "@/src/features/task/board-order";
+import { AssigneeChips } from "@/src/features/task/AssigneeChips";
+import { TaskDueBadge } from "@/src/features/task/TaskDueBadge";
+import type { WorkspaceMember } from "@/src/features/workspace/members";
+
+type Props = {
+  projectId: string;
+  tasks: Task[];
+  columns: BoardColumn[] | undefined;
+  members: WorkspaceMember[];
+  onReorder: (
+    moves: Array<{
+      taskId: string;
+      columnId: string | null;
+      position: number;
+      status: Task["status"];
+    }>,
+  ) => Promise<void> | void;
+  onDelete: (taskId: string) => void;
+  onOpenTask: (taskId: string) => void;
+};
+
+export function TaskBoard({
+  projectId: _projectId,
+  tasks,
+  columns,
+  members,
+  onReorder,
+  onDelete,
+  onOpenTask,
+}: Props) {
+  const boardColumns = useMemo(() => resolveBoardColumns(columns), [columns]);
+  const [groups, setGroups] = useState<ColumnTasks>(() =>
+    groupTasksByColumn(tasks, boardColumns),
+  );
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setGroups(groupTasksByColumn(tasks, boardColumns));
+  }, [tasks, boardColumns]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+  );
+
+  const activeTask = activeId
+    ? flattenGroups(groups).find((task) => task.id === activeId) ?? null
+    : null;
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeTaskId = String(active.id);
+    const overId = String(over.id);
+    const activeContainer = findContainer(groups, activeTaskId);
+    const overContainer = findContainer(groups, overId);
+    if (!activeContainer || !overContainer || activeContainer === overContainer) {
+      return;
+    }
+
+    setGroups((current) => {
+      const next = moveTaskInGroups(current, activeTaskId, overId);
+      return next ?? current;
+    });
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveId(null);
+    if (!over) {
+      setGroups(groupTasksByColumn(tasks, boardColumns));
+      return;
+    }
+
+    const activeTaskId = String(active.id);
+    const overId = String(over.id);
+    const previous = groupTasksByColumn(tasks, boardColumns);
+    const from = findContainer(previous, activeTaskId);
+
+    let next = groups;
+    const activeContainer = findContainer(groups, activeTaskId);
+    const overContainer = findContainer(groups, overId);
+
+    // Cross-column moves are applied in onDragOver; same-column still needs apply.
+    if (
+      activeContainer &&
+      overContainer &&
+      activeContainer === overContainer
+    ) {
+      const reordered = moveTaskInGroups(groups, activeTaskId, overId);
+      if (reordered) {
+        next = reordered;
+        setGroups(next);
+      }
+    }
+
+    const to = findContainer(next, activeTaskId);
+    if (!from || !to) return;
+
+    const affected = from === to ? [from] : [...new Set([from, to])];
+    const unchanged = affected.every(
+      (columnId) =>
+        (previous[columnId] ?? []).map((task) => task.id).join() ===
+        (next[columnId] ?? []).map((task) => task.id).join(),
+    );
+    if (unchanged) return;
+
+    const moves = buildReorderMoves(next, boardColumns, affected);
+    if (moves.length === 0) return;
+
+    try {
+      await onReorder(moves);
+    } catch {
+      setGroups(previous);
+    }
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        {boardColumns.map((column) => (
+          <BoardColumnDroppable
+            key={column.id}
+            columnId={column.id}
+            title={column.name}
+            tasks={groups[column.id] ?? []}
+            members={members}
+            onDelete={onDelete}
+            onOpenTask={onOpenTask}
+          />
+        ))}
+      </div>
+      <DragOverlay>
+        {activeTask ? (
+          <div className="rounded-lg border border-[#52D3FE] bg-[#121212] p-3 shadow-lg">
+            <p className="text-sm text-[#F5F5F5]">{activeTask.title}</p>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function BoardColumnDroppable({
+  columnId,
+  title,
+  tasks,
+  members,
+  onDelete,
+  onOpenTask,
+}: {
+  columnId: string;
+  title: string;
+  tasks: Task[];
+  members: WorkspaceMember[];
+  onDelete: (taskId: string) => void;
+  onOpenTask: (taskId: string) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: columnId });
+  const ids = tasks.map((task) => task.id);
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-xl border bg-[#1E1E1E] p-3 transition-colors ${
+        isOver ? "border-[#52D3FE]" : "border-[#2A2A2A]"
+      }`}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-medium text-[#F5F5F5]">{title}</h3>
+        <span className="font-mono text-xs text-[#737373]">{tasks.length}</span>
+      </div>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <ul className="flex min-h-24 flex-col gap-2">
+          {tasks.map((task) => (
+            <SortableTaskCard
+              key={task.id}
+              task={task}
+              members={members}
+              onDelete={onDelete}
+              onOpenTask={onOpenTask}
+            />
+          ))}
+          {tasks.length === 0 ? (
+            <li className="px-1 py-6 text-center text-xs text-[#737373]">
+              Drop tasks here
+            </li>
+          ) : null}
+        </ul>
+      </SortableContext>
+    </div>
+  );
+}
+
+function SortableTaskCard({
+  task,
+  members,
+  onDelete,
+  onOpenTask,
+}: {
+  task: Task;
+  members: WorkspaceMember[];
+  onDelete: (taskId: string) => void;
+  onOpenTask: (taskId: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-lg border border-[#2A2A2A] bg-[#121212] p-3 ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          aria-label="Drag task"
+          className="mt-0.5 cursor-grab touch-none px-1 text-[#737373] active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          ⋮⋮
+        </button>
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          onClick={() => onOpenTask(task.id)}
+        >
+          <p className="text-sm text-[#F5F5F5]">{task.title}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="font-mono text-[11px] uppercase tracking-wide text-[#737373]">
+              {task.priority === "none" ? "no priority" : task.priority}
+            </p>
+            <TaskDueBadge dueAt={task.dueAt} />
+            <AssigneeChips assigneeIds={task.assigneeIds} members={members} />
+          </div>
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={() => onDelete(task.id)}
+        className="mt-2 rounded border border-[#2A2A2A] px-2 py-1 text-[11px] text-[#A3A3A3] hover:border-[#D9A759] hover:text-[#D9A759]"
+      >
+        Delete
+      </button>
+    </li>
+  );
+}

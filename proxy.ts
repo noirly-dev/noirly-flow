@@ -1,0 +1,30 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+
+export const proxy = auth((request) => {
+  const { pathname } = request.nextUrl;
+  const isLogin = pathname === "/login" || pathname.startsWith("/login/");
+  const isAuthApi = pathname.startsWith("/api/auth");
+
+  if (!request.auth && !isLogin && !isAuthApi) {
+    const login = new URL("/login", request.nextUrl.origin);
+    if (pathname.startsWith("/invite/")) {
+      login.searchParams.set("next", pathname);
+    }
+    return NextResponse.redirect(login);
+  }
+
+  if (request.auth && isLogin) {
+    const next = request.nextUrl.searchParams.get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      return NextResponse.redirect(new URL(next, request.nextUrl.origin));
+    }
+    return NextResponse.redirect(new URL("/", request.nextUrl.origin));
+  }
+
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};

@@ -1,5 +1,18 @@
 import mongoose from "mongoose";
 
+function resolveFlowDbName(uri: string): string | undefined {
+  try {
+    const normalized = uri.replace(/^mongodb(\+srv)?:/i, "http:");
+    const pathname = new URL(normalized).pathname.replace(/^\//, "");
+    const name = pathname.split("/")[0];
+    const isAtlas = /mongodb\+srv:|\.mongodb\.net/i.test(uri);
+    if (isAtlas && (!name || name === "test")) return "noirly-flow";
+    return name || undefined;
+  } catch {
+    return /mongodb\+srv:|\.mongodb\.net/i.test(uri) ? "noirly-flow" : undefined;
+  }
+}
+
 type MongooseCache = {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -28,8 +41,10 @@ export async function connectMongo(): Promise<typeof mongoose> {
   }
 
   if (!cache.promise) {
+    const dbName = resolveFlowDbName(uri);
     cache.promise = mongoose.connect(uri, {
       bufferCommands: false,
+      ...(dbName ? { dbName } : {}),
     });
   }
 

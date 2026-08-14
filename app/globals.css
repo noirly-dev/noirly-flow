@@ -75,3 +75,17 @@ button:disabled,
   letter-spacing: 0.08em;
   line-height: 0.85;
 }
+
+.busy-dots {
+  animation: busy-pulse 1.05s ease-in-out infinite;
+}
+
+@keyframes busy-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}

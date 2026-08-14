@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
+import { useUIStore } from "@/src/stores/ui-store";
 
 export function CreateTeamWorkspace() {
   const router = useRouter();
@@ -18,8 +19,9 @@ export function CreateTeamWorkspace() {
       setName("");
       setOpen(false);
       void queryClient.invalidateQueries({ queryKey: qk.workspaces });
-      router.push(`/w/${result.workspace.id}`);
-      router.refresh();
+      const href = `/w/${result.workspace.id}`;
+      useUIStore.getState().setPendingHref(href);
+      router.push(href);
     },
   });
 

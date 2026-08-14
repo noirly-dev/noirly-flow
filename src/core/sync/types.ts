@@ -167,7 +167,7 @@ export interface SyncProvider {
   getTask(taskId: string): Promise<Task>;
   createTask(input: CreateTaskInput): Promise<Task>;
   updateTask(taskId: string, patch: Partial<Task>): Promise<Task>;
-  deleteTask(taskId: string): Promise<void>;
+  deleteTask(taskId: string): Promise<Task>;
   reorderTasks(input: ReorderTasksInput): Promise<Task[]>;
   listTags(workspaceId: string): Promise<Tag[]>;
   createTag(workspaceId: string, input: { name: string; color?: string }): Promise<Tag>;

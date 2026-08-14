@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { RealtimeClientContext } from "@noirly-dev/realtime-client/react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { qk } from "@/src/core/sync/query-keys";
@@ -21,6 +20,14 @@ import {
   isoToDateInput,
   type DuePreset,
 } from "@/src/features/task/dates";
+import {
+  patchCachedTask,
+  removeCachedTask,
+  restoreTaskQueries,
+  seedTaskCache,
+  snapshotTaskQueries,
+  upsertCachedTask,
+} from "@/src/features/task/task-cache";
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: "todo", label: "Todo" },
@@ -53,10 +60,7 @@ type Props = {
 
 export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
   const queryClient = useQueryClient();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const selectedTaskId = searchParams.get("task");
+  const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("none");
   const [dueDate, setDueDate] = useState("");
@@ -76,6 +80,17 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    function syncFromUrl() {
+      setDrawerTaskId(
+        new URLSearchParams(window.location.search).get("task"),
+      );
+    }
+    syncFromUrl();
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, []);
 
   const canWrite = useCan("task.write");
   const isInbox = !projectId;
@@ -174,21 +189,29 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
     queryFn: () => api.listMembers(workspaceId),
   });
 
+  function writeTaskParam(taskId: string | null) {
+    const url = new URL(window.location.href);
+    if (taskId) url.searchParams.set("task", taskId);
+    else url.searchParams.delete("task");
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    if (`${window.location.pathname}${window.location.search}${window.location.hash}` === next) {
+      return;
+    }
+    window.history.pushState(window.history.state, "", next);
+  }
+
   function openTask(taskId: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("task", taskId);
-    router.push(`${pathname}?${params.toString()}`);
+    if (taskId.startsWith("tmp-")) return;
+    const task = tasksQuery.data?.tasks.find((item) => item.id === taskId);
+    if (task) seedTaskCache(queryClient, task);
+    setDrawerTaskId(taskId);
+    writeTaskParam(taskId);
   }
 
   function closeTask() {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("task");
-    const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    setDrawerTaskId(null);
+    writeTaskParam(null);
   }
-
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["tasks", workspaceId] });
 
   const createMutation = useMutation({
     mutationFn: (input: {
@@ -260,7 +283,6 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       }
       setError(err.message);
     },
-    onSettled: () => void invalidate(),
   });
 
   const updateMutation = useMutation({
@@ -271,14 +293,43 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       taskId: string;
       patch: Partial<Task>;
     }) => api.updateTask(taskId, patch),
-    onSuccess: () => void invalidate(),
-    onError: (err: Error) => setError(err.message),
+    onMutate: async ({ taskId, patch }) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks", workspaceId] });
+      const previous = snapshotTaskQueries(queryClient, workspaceId);
+      patchCachedTask(queryClient, workspaceId, taskId, patch);
+      setError(null);
+      return { previous };
+    },
+    onSuccess: (data) => {
+      upsertCachedTask(queryClient, workspaceId, data.task);
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(queryClient, context.previous);
+      }
+      setError(err.message);
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (taskId: string) => api.deleteTask(taskId),
-    onSuccess: () => void invalidate(),
-    onError: (err: Error) => setError(err.message),
+    onMutate: async (taskId) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks", workspaceId] });
+      const previous = snapshotTaskQueries(queryClient, workspaceId);
+      if (drawerTaskId === taskId) {
+        setDrawerTaskId(null);
+        writeTaskParam(null);
+      }
+      removeCachedTask(queryClient, workspaceId, taskId);
+      setError(null);
+      return { previous };
+    },
+    onError: (err: Error, _taskId, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(queryClient, context.previous);
+      }
+      setError(err.message);
+    },
   });
 
   const reorderMutation = useMutation({
@@ -324,6 +375,18 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       }
       return { previous };
     },
+    onSuccess: (data) => {
+      queryClient.setQueriesData<{ tasks: Task[] }>(
+        { queryKey: ["tasks", workspaceId] },
+        (old) => {
+          if (!old) return old;
+          const byId = new Map(data.tasks.map((task) => [task.id, task]));
+          return {
+            tasks: old.tasks.map((task) => byId.get(task.id) ?? task),
+          };
+        },
+      );
+    },
     onError: (err: Error, _moves, context) => {
       if (context?.previous) {
         queryClient.setQueryData(
@@ -333,10 +396,10 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       }
       setError(err.message);
     },
-    onSettled: () => void invalidate(),
   });
 
   const tasks = tasksQuery.data?.tasks ?? [];
+  const headerName = projectQuery.data?.project.name ?? projectName;
   const openCount = tasks.filter(
     (t) => t.status !== "done" && t.status !== "canceled",
   ).length;
@@ -346,7 +409,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted">
-            {projectName}
+            {headerName}
           </p>
           <h2 className="text-perforated mt-1 font-display text-4xl font-bold tracking-[-0.05em] uppercase md:text-5xl">
             Tasks
@@ -581,10 +644,11 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onOpenTask={openTask}
         />
       )}
-      {selectedTaskId ? (
+      {drawerTaskId ? (
         <TaskDrawer
           workspaceId={workspaceId}
-          taskId={selectedTaskId}
+          taskId={drawerTaskId}
+          initialTask={tasks.find((task) => task.id === drawerTaskId)}
           onClose={closeTask}
         />
       ) : null}

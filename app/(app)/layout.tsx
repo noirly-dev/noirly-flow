@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AppShell } from "@/src/components/AppShell";
-import { getSyncProvider } from "@/src/server/api/http";
 
 export default async function AppGroupLayout({
   children,
@@ -13,13 +12,12 @@ export default async function AppGroupLayout({
     redirect("/login");
   }
 
-  const { ctx, sync } = await getSyncProvider();
-  const workspaces = await sync.listWorkspaces();
-
   return (
     <AppShell
-      user={{ displayName: ctx.displayName, email: ctx.email }}
-      workspaces={workspaces}
+      user={{
+        displayName: session.user.name || "You",
+        email: session.user.email ?? "",
+      }}
     >
       {children}
     </AppShell>

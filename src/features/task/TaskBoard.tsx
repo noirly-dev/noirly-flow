@@ -130,10 +130,13 @@ export function TaskBoard({
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    draggingRef.current = false;
     setActiveId(null);
-    if (!canWrite) return;
+    if (!canWrite) {
+      draggingRef.current = false;
+      return;
+    }
     if (!over) {
+      draggingRef.current = false;
       setGroups(groupTasksByColumn(tasks, boardColumns));
       return;
     }
@@ -161,7 +164,10 @@ export function TaskBoard({
     }
 
     const to = findContainer(next, activeTaskId);
-    if (!from || !to) return;
+    if (!from || !to) {
+      draggingRef.current = false;
+      return;
+    }
 
     const affected = from === to ? [from] : [...new Set([from, to])];
     const unchanged = affected.every(
@@ -169,15 +175,23 @@ export function TaskBoard({
         (previous[columnId] ?? []).map((task) => task.id).join() ===
         (next[columnId] ?? []).map((task) => task.id).join(),
     );
-    if (unchanged) return;
+    if (unchanged) {
+      draggingRef.current = false;
+      return;
+    }
 
     const moves = buildReorderMoves(next, boardColumns, affected);
-    if (moves.length === 0) return;
+    if (moves.length === 0) {
+      draggingRef.current = false;
+      return;
+    }
 
     try {
       await onReorder(moves);
     } catch {
       setGroups(previous);
+    } finally {
+      draggingRef.current = false;
     }
   }
 
@@ -325,6 +339,7 @@ function SortableTaskCard({
         <button
           type="button"
           className="min-w-0 flex-1 cursor-pointer text-left"
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onOpenTask(task.id)}
         >
           <p className="text-sm text-ink">{task.title}</p>

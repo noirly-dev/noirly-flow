@@ -1,13 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { SignOutButton } from "@/src/features/auth/SignOutButton";
 import { CommandPalette } from "@/src/features/command-palette/CommandPalette";
 import { CreateTeamWorkspace } from "@/src/features/workspace/CreateTeamWorkspace";
+import { NavLink, useOptimisticPath } from "@/src/components/NavLink";
+import { api } from "@/src/lib/api-client";
+import { qk } from "@/src/core/sync/query-keys";
 import { useUIStore } from "@/src/stores/ui-store";
-import type { Workspace } from "@/src/core/sync/types";
 
 export type ShellUser = {
   displayName: string;
@@ -16,30 +17,52 @@ export type ShellUser = {
 
 type Props = {
   user: ShellUser;
-  workspaces: Workspace[];
   children: ReactNode;
 };
 
 function navClass(active: boolean) {
-  return `block px-3 py-2 text-sm ${
+  return `block cursor-pointer px-3 py-2 text-sm ${
     active
       ? "bg-ink text-canvas"
       : "text-muted hover:bg-ink hover:text-canvas"
   }`;
 }
 
-export function AppShell({ user, workspaces, children }: Props) {
-  const pathname = usePathname();
+export function AppShell({ user, children }: Props) {
+  const path = useOptimisticPath();
   const [open, setOpen] = useState(false);
+  const workspacesQuery = useQuery({
+    queryKey: qk.workspaces,
+    queryFn: () => api.listWorkspaces(),
+    staleTime: 60_000,
+  });
+  const workspaces = workspacesQuery.data?.workspaces ?? [];
 
-  const activeWorkspaceId = pathname.startsWith("/w/")
-    ? pathname.split("/")[2]
-    : null;
-  const isInbox = pathname.includes("/inbox") || pathname === "/inbox";
-  const isMembers = pathname.includes("/members");
-  const isActivity = pathname.includes("/activity");
+  const activeWorkspaceId = path.startsWith("/w/") ? path.split("/")[2] : null;
+  const isInbox = path.includes("/inbox");
+  const isMembers = path.includes("/members");
+  const isActivity = path.includes("/activity");
   const isBoard =
     Boolean(activeWorkspaceId) && !isInbox && !isMembers && !isActivity;
+  const currentProjectId = path.includes("/p/")
+    ? path.split("/p/")[1]?.split("/")[0]
+    : null;
+
+  const workspaceDetailQuery = useQuery({
+    queryKey: qk.workspace(activeWorkspaceId ?? ""),
+    queryFn: () => api.getWorkspace(activeWorkspaceId!),
+    enabled: Boolean(activeWorkspaceId),
+    staleTime: 60_000,
+  });
+  const boardProjectId =
+    currentProjectId ?? workspaceDetailQuery.data?.projects[0]?.id;
+  const boardHref = activeWorkspaceId
+    ? boardProjectId
+      ? `/w/${activeWorkspaceId}/p/${boardProjectId}`
+      : `/w/${activeWorkspaceId}`
+    : workspaces[0]
+      ? `/w/${workspaces[0].id}`
+      : "/";
 
   return (
     <div className="flex min-h-full">
@@ -63,8 +86,10 @@ export function AppShell({ user, workspaces, children }: Props) {
           </p>
           <button
             type="button"
-            onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-            className="mt-3 flex w-full items-center justify-between border border-dashed border-hairline px-3 py-2 text-left text-sm text-muted hover:bg-ink hover:text-canvas"
+            onClick={() =>
+              useUIStore.getState().setCommandPaletteOpen(true)
+            }
+            className="mt-3 flex w-full cursor-pointer items-center justify-between border border-dashed border-hairline px-3 py-2 text-left text-sm text-muted hover:bg-ink hover:text-canvas"
           >
             <span>Search</span>
             <span className="font-mono text-[10px]">⌘K</span>
@@ -82,10 +107,10 @@ export function AppShell({ user, workspaces, children }: Props) {
                 const active = activeWorkspaceId === workspace.id;
                 return (
                   <li key={workspace.id}>
-                    <Link
+                    <NavLink
                       href={href}
                       onClick={() => setOpen(false)}
-                      className={`flex items-center justify-between px-3 py-2 text-sm ${
+                      className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
                         active
                           ? "bg-ink text-canvas"
                           : "text-muted hover:bg-ink hover:text-canvas"
@@ -95,11 +120,14 @@ export function AppShell({ user, workspaces, children }: Props) {
                       <span className="font-mono text-[10px] uppercase tracking-wide opacity-60">
                         {workspace.kind}
                       </span>
-                    </Link>
+                    </NavLink>
                   </li>
                 );
               })}
             </ul>
+            {workspacesQuery.isLoading && workspaces.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-muted">Loading…</p>
+            ) : null}
             <CreateTeamWorkspace />
           </section>
 
@@ -109,7 +137,7 @@ export function AppShell({ user, workspaces, children }: Props) {
             </p>
             <ul className="flex flex-col gap-px">
               <li>
-                <Link
+                <NavLink
                   href={
                     activeWorkspaceId
                       ? `/w/${activeWorkspaceId}/inbox`
@@ -119,52 +147,46 @@ export function AppShell({ user, workspaces, children }: Props) {
                   className={navClass(isInbox)}
                 >
                   Inbox
-                </Link>
+                </NavLink>
               </li>
               <li>
-                <Link
-                  href={
-                    activeWorkspaceId
-                      ? `/w/${activeWorkspaceId}`
-                      : workspaces[0]
-                        ? `/w/${workspaces[0].id}`
-                        : "/"
-                  }
+                <NavLink
+                  href={boardHref}
                   onClick={() => setOpen(false)}
                   className={navClass(isBoard)}
                 >
                   Board
-                </Link>
+                </NavLink>
               </li>
               <li>
-                <Link
+                <NavLink
                   href="/settings"
                   onClick={() => setOpen(false)}
-                  className={navClass(pathname.startsWith("/settings"))}
+                  className={navClass(path.startsWith("/settings"))}
                 >
                   Settings
-                </Link>
+                </NavLink>
               </li>
               {activeWorkspaceId ? (
                 <li>
-                  <Link
+                  <NavLink
                     href={`/w/${activeWorkspaceId}/activity`}
                     onClick={() => setOpen(false)}
                     className={navClass(isActivity)}
                   >
                     Activity
-                  </Link>
+                  </NavLink>
                 </li>
               ) : null}
               {activeWorkspaceId ? (
                 <li>
-                  <Link
+                  <NavLink
                     href={`/w/${activeWorkspaceId}/members`}
                     onClick={() => setOpen(false)}
-                    className={navClass(pathname.includes("/members"))}
+                    className={navClass(isMembers)}
                   >
                     Members
-                  </Link>
+                  </NavLink>
                 </li>
               ) : null}
             </ul>
@@ -185,7 +207,7 @@ export function AppShell({ user, workspaces, children }: Props) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="border border-dashed border-hairline px-3 py-1.5 text-sm"
+            className="cursor-pointer border border-dashed border-hairline px-3 py-1.5 text-sm"
           >
             Menu
           </button>
@@ -194,8 +216,10 @@ export function AppShell({ user, workspaces, children }: Props) {
           </p>
           <button
             type="button"
-            onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-            className="ml-auto border border-dashed border-hairline px-3 py-1.5 font-mono text-sm text-muted"
+            onClick={() =>
+              useUIStore.getState().setCommandPaletteOpen(true)
+            }
+            className="ml-auto cursor-pointer border border-dashed border-hairline px-3 py-1.5 font-mono text-sm text-muted"
           >
             ⌘K
           </button>

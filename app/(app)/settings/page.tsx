@@ -1,14 +1,11 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getSyncProvider } from "@/src/server/api/http";
 
 export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
-
-  const { ctx } = await getSyncProvider();
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10">
@@ -26,15 +23,15 @@ export default async function SettingsPage() {
       <dl className="grid gap-3 border border-dashed border-hairline bg-surface p-5 font-mono text-xs text-muted">
         <div className="flex justify-between gap-4 border-b border-dashed border-hairline pb-3">
           <dt>Name</dt>
-          <dd className="text-ink">{ctx.displayName}</dd>
+          <dd className="text-ink">{session.user.name || "—"}</dd>
         </div>
         <div className="flex justify-between gap-4 border-b border-dashed border-hairline pb-3">
           <dt>Email</dt>
-          <dd className="text-ink">{ctx.email}</dd>
+          <dd className="text-ink">{session.user.email || "—"}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt>Identity sub</dt>
-          <dd className="truncate text-ink">{ctx.identitySub}</dd>
+          <dd className="truncate text-ink">{session.user.id}</dd>
         </div>
       </dl>
     </main>

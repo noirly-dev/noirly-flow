@@ -572,11 +572,11 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
         }
 
         await task.save();
-
         if (spawnRule) {
           await spawnNextOccurrence(task, spawnRule, userId);
         }
 
+        const mapped = mapTask(task);
         const afterAssignees = (task.assigneeIds ?? []).map((id) =>
           id.toString(),
         );
@@ -600,32 +600,41 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
           }
         }
 
+        const activity: Array<Promise<unknown>> = [];
         if (!idsEqual(before.assigneeIds, afterAssignees)) {
-          await recordActivity({
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            taskId: task._id,
-            actorId: userId,
-            verb: "task.assigned",
-            metadata: {
-              from: before.assigneeIds,
-              to: afterAssignees,
-            },
-          });
+          activity.push(
+            recordActivity({
+              workspaceId: task.workspaceId,
+              projectId: task.projectId,
+              taskId: task._id,
+              actorId: userId,
+              verb: "task.assigned",
+              metadata: {
+                from: before.assigneeIds,
+                to: afterAssignees,
+              },
+            }),
+          );
         }
-
         if (Object.keys(changes).length > 0) {
-          await recordActivity({
-            workspaceId: task.workspaceId,
-            projectId: task.projectId,
-            taskId: task._id,
-            actorId: userId,
-            verb: "task.updated",
-            metadata: changes,
+          activity.push(
+            recordActivity({
+              workspaceId: task.workspaceId,
+              projectId: task.projectId,
+              taskId: task._id,
+              actorId: userId,
+              verb: "task.updated",
+              metadata: changes,
+            }),
+          );
+        }
+        if (activity.length > 0) {
+          void Promise.all(activity).catch((error) => {
+            console.error("recordActivity failed", error);
           });
         }
 
-        return mapTask(task);
+        return mapped;
       });
     },
 
@@ -635,14 +644,18 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
         await requireMembership(userId, task.workspaceId.toString(), "member");
         task.deletedAt = new Date();
         await task.save();
-        await recordActivity({
+        const mapped = mapTask(task);
+        void recordActivity({
           workspaceId: task.workspaceId,
           projectId: task.projectId,
           taskId: task._id,
           actorId: userId,
           verb: "task.deleted",
           metadata: { title: task.title },
+        }).catch((error) => {
+          console.error("recordActivity failed", error);
         });
+        return mapped;
       });
     },
 

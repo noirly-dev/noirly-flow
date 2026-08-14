@@ -59,11 +59,10 @@ export async function DELETE(_request: Request, { params }: Params) {
     const { taskId } = await params;
     await assertObjectId(taskId, "taskId");
     const { sync } = await getSyncProvider();
-    const existing = await sync.getTask(taskId);
-    await sync.deleteTask(taskId);
-    if (existing.projectId) {
+    const task = await sync.deleteTask(taskId);
+    if (task.projectId) {
       void publishRealtime({
-        channel: `project:${existing.projectId}`,
+        channel: `project:${task.projectId}`,
         event: "task.delete",
         data: { taskId },
       });

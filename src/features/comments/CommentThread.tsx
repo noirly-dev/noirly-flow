@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
+import type { Comment } from "@/src/core/sync/types";
 import { memberName, type WorkspaceMember } from "@/src/features/workspace/members";
 
 type Props = {
@@ -29,16 +30,48 @@ export function CommentThread({
   });
 
   const createMutation = useMutation({
-    mutationFn: () => api.createComment(taskId, body),
-    onSuccess: () => {
+    mutationFn: (text: string) => api.createComment(taskId, text),
+    onMutate: async (text) => {
+      await queryClient.cancelQueries({ queryKey: qk.comments(taskId) });
+      const previous = queryClient.getQueryData<{ comments: Comment[] }>(
+        qk.comments(taskId),
+      );
+      const now = new Date().toISOString();
+      const optimistic = {
+        id: `tmp-${crypto.randomUUID()}`,
+        taskId,
+        authorId: "",
+        body: text,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      queryClient.setQueryData(qk.comments(taskId), {
+        comments: [...(previous?.comments ?? []), optimistic],
+      });
       setBody("");
       setError(null);
-      void queryClient.invalidateQueries({ queryKey: qk.comments(taskId) });
-      void queryClient.invalidateQueries({
-        queryKey: qk.activity(workspaceId, taskId),
-      });
+      return { previous, optimisticId: optimistic.id };
     },
-    onError: (err: Error) => setError(err.message),
+    onSuccess: (data, _text, context) => {
+      queryClient.setQueryData<{ comments: Comment[] }>(
+        qk.comments(taskId),
+        (old) => {
+          if (!old) return { comments: [data.comment] };
+          return {
+            comments: old.comments.map((comment) =>
+              comment.id === context?.optimisticId ? data.comment : comment,
+            ),
+          };
+        },
+      );
+    },
+    onError: (err: Error, _text, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(qk.comments(taskId), context.previous);
+      }
+      setError(err.message);
+    },
   });
 
   const comments = commentsQuery.data?.comments ?? [];
@@ -79,7 +112,7 @@ export function CommentThread({
         onSubmit={(event) => {
           event.preventDefault();
           if (!body.trim()) return;
-          createMutation.mutate();
+          createMutation.mutate(body.trim());
         }}
       >
         <textarea
@@ -99,7 +132,7 @@ export function CommentThread({
           )}
           <button
             type="submit"
-            disabled={createMutation.isPending || !body.trim()}
+            disabled={!body.trim()}
             className="h-8 bg-ink px-3 text-xs font-semibold text-canvas disabled:opacity-50"
           >
             Comment

@@ -122,11 +122,11 @@ export function CommandPalette({ workspaces }: Props) {
         queryKey: ["tasks", activeWorkspaceId],
       });
       setOpen(false);
-      router.push(
-        projectId
-          ? `/w/${activeWorkspaceId}/p/${projectId}`
-          : `/w/${activeWorkspaceId}/inbox`,
-      );
+      const href = projectId
+        ? `/w/${activeWorkspaceId}/p/${projectId}`
+        : `/w/${activeWorkspaceId}/inbox`;
+      useUIStore.getState().setPendingHref(href);
+      router.push(href);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create task");
     }
@@ -139,9 +139,14 @@ export function CommandPalette({ workspaces }: Props) {
       await queryClient.invalidateQueries({
         queryKey: qk.projects(activeWorkspaceId),
       });
+      await queryClient.invalidateQueries({
+        queryKey: qk.workspace(activeWorkspaceId),
+      });
       setOpen(false);
+      useUIStore.getState().setPendingHref(
+        `/w/${activeWorkspaceId}/p/${project.id}`,
+      );
       router.push(`/w/${activeWorkspaceId}/p/${project.id}`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create project");
     }
@@ -149,6 +154,7 @@ export function CommandPalette({ workspaces }: Props) {
 
   function go(href: string) {
     setOpen(false);
+    useUIStore.getState().setPendingHref(href.split("?")[0] ?? href);
     router.push(href);
   }
 

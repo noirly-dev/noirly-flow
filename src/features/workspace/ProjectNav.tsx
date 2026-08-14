@@ -1,27 +1,36 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
+import type { Project, Workspace } from "@/src/core/sync/types";
+import type { MemberRole } from "@/src/core/models/enums";
 import { useCan } from "@/src/features/workspace/WorkspaceRoleContext";
+import { NavLink, useOptimisticPath } from "@/src/components/NavLink";
+import { useUIStore } from "@/src/stores/ui-store";
+
+type WorkspacePayload = {
+  workspace: Workspace & { role: MemberRole };
+  projects: Project[];
+};
 
 type Props = {
   workspaceId: string;
 };
 
 export function ProjectNav({ workspaceId }: Props) {
-  const pathname = usePathname();
+  const path = useOptimisticPath();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
 
-  const projectsQuery = useQuery({
-    queryKey: qk.projects(workspaceId),
-    queryFn: () => api.listProjects(workspaceId),
+  const workspaceQuery = useQuery({
+    queryKey: qk.workspace(workspaceId),
+    queryFn: () => api.getWorkspace(workspaceId),
+    staleTime: 60_000,
   });
 
   const createMutation = useMutation({
@@ -29,18 +38,34 @@ export function ProjectNav({ workspaceId }: Props) {
     onSuccess: (result) => {
       setName("");
       setOpen(false);
-      void queryClient.invalidateQueries({ queryKey: qk.projects(workspaceId) });
-      router.push(`/w/${workspaceId}/p/${result.project.id}`);
-      router.refresh();
+      queryClient.setQueryData<WorkspacePayload>(
+        qk.workspace(workspaceId),
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            projects: [...old.projects, result.project],
+          };
+        },
+      );
+      queryClient.setQueryData<{ projects: Project[] }>(
+        qk.projects(workspaceId),
+        (old) => ({
+          projects: [...(old?.projects ?? []), result.project],
+        }),
+      );
+      const href = `/w/${workspaceId}/p/${result.project.id}`;
+      useUIStore.getState().setPendingHref(href);
+      router.push(href);
     },
   });
 
-  const projects = projectsQuery.data?.projects ?? [];
+  const projects = workspaceQuery.data?.projects ?? [];
   const canWrite = useCan("project.write");
   const inboxHref = `/w/${workspaceId}/inbox`;
-  const inboxActive = pathname.includes("/inbox");
-  const activeProjectId = pathname.includes("/p/")
-    ? pathname.split("/p/")[1]?.split("/")[0]
+  const inboxActive = path.includes("/inbox");
+  const activeProjectId = path.includes("/p/")
+    ? path.split("/p/")[1]?.split("/")[0]
     : null;
 
   return (
@@ -53,7 +78,7 @@ export function ProjectNav({ workspaceId }: Props) {
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="text-xs text-ink hover:underline"
+            className="cursor-pointer text-xs text-ink hover:underline"
           >
             {open ? "Cancel" : "New"}
           </button>
@@ -77,7 +102,7 @@ export function ProjectNav({ workspaceId }: Props) {
           <button
             type="submit"
             disabled={createMutation.isPending || !name.trim()}
-            className="h-8 bg-ink px-2 text-xs font-semibold text-canvas disabled:opacity-50"
+            className="h-8 cursor-pointer bg-ink px-2 text-xs font-semibold text-canvas disabled:opacity-50"
           >
             Add
           </button>
@@ -85,36 +110,36 @@ export function ProjectNav({ workspaceId }: Props) {
       ) : null}
       <ul className="flex flex-col gap-1">
         <li>
-          <Link
+          <NavLink
             href={inboxHref}
-            className={`block truncate px-3 py-2 text-sm ${
+            className={`block cursor-pointer truncate px-3 py-2 text-sm ${
               inboxActive
                 ? "bg-ink text-canvas"
                 : "text-muted hover:bg-ink hover:text-canvas"
             }`}
           >
             Inbox
-          </Link>
+          </NavLink>
         </li>
         {projects.map((project) => {
           const href = `/w/${workspaceId}/p/${project.id}`;
           const active = activeProjectId === project.id;
           return (
             <li key={project.id}>
-              <Link
+              <NavLink
                 href={href}
-                className={`block truncate px-3 py-2 text-sm ${
+                className={`block cursor-pointer truncate px-3 py-2 text-sm ${
                   active
                     ? "bg-ink text-canvas"
                     : "text-muted hover:bg-ink hover:text-canvas"
                 }`}
               >
                 {project.name}
-              </Link>
+              </NavLink>
             </li>
           );
         })}
-        {projectsQuery.isLoading ? (
+        {workspaceQuery.isLoading && projects.length === 0 ? (
           <li className="px-3 py-2 text-xs text-muted">Loading…</li>
         ) : null}
       </ul>

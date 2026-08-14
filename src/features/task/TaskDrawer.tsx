@@ -10,6 +10,12 @@ import { ActivityFeed } from "@/src/features/activity/ActivityFeed";
 import { CommentThread } from "@/src/features/comments/CommentThread";
 import { dateInputToIso, isoToDateInput } from "@/src/features/task/dates";
 import { useCan } from "@/src/features/workspace/WorkspaceRoleContext";
+import {
+  patchCachedTask,
+  restoreTaskQueries,
+  snapshotTaskQueries,
+  upsertCachedTask,
+} from "@/src/features/task/task-cache";
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: "todo", label: "Todo" },
@@ -29,30 +35,43 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 type Props = {
   workspaceId: string;
   taskId: string;
+  initialTask?: Task;
   onClose: () => void;
 };
 
-export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
+export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props) {
   const queryClient = useQueryClient();
   const canWrite = useCan("task.write");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("todo");
-  const [priority, setPriority] = useState<TaskPriority>("none");
-  const [dueDate, setDueDate] = useState("");
-  const [projectId, setProjectId] = useState<string | "">("");
-  const [tagIds, setTagIds] = useState<string[]>([]);
-  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [title, setTitle] = useState(initialTask?.title ?? "");
+  const [description, setDescription] = useState(initialTask?.description ?? "");
+  const [status, setStatus] = useState<TaskStatus>(initialTask?.status ?? "todo");
+  const [priority, setPriority] = useState<TaskPriority>(
+    initialTask?.priority ?? "none",
+  );
+  const [dueDate, setDueDate] = useState(isoToDateInput(initialTask?.dueAt ?? null));
+  const [projectId, setProjectId] = useState<string | "">(
+    initialTask?.projectId ?? "",
+  );
+  const [tagIds, setTagIds] = useState<string[]>(initialTask?.tagIds ?? []);
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(
+    initialTask?.assigneeIds ?? [],
+  );
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(
+    initialTask?.checklist ?? [],
+  );
   const [newCheck, setNewCheck] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
-  const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(null);
+  const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(
+    initialTask?.recurrence ?? null,
+  );
   const [newTag, setNewTag] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const taskQuery = useQuery({
-    queryKey: ["task", taskId],
+    queryKey: qk.task(taskId),
     queryFn: () => api.getTask(taskId),
+    initialData: initialTask ? { task: initialTask } : undefined,
+    initialDataUpdatedAt: initialTask ? 0 : undefined,
   });
 
   const projectsQuery = useQuery({
@@ -100,32 +119,85 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
 
   const saveMutation = useMutation({
     mutationFn: (patch: Partial<Task>) => api.updateTask(taskId, patch),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["tasks", workspaceId] });
-      void queryClient.invalidateQueries({ queryKey: ["task", taskId] });
-      void queryClient.invalidateQueries({
-        queryKey: qk.activity(workspaceId, taskId),
-      });
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks", workspaceId] });
+      const previous = snapshotTaskQueries(queryClient, workspaceId);
+      patchCachedTask(queryClient, workspaceId, taskId, patch);
       setError(null);
+      return { previous };
     },
-    onError: (err: Error) => setError(err.message),
+    onSuccess: (data) => {
+      upsertCachedTask(queryClient, workspaceId, data.task);
+    },
+    onError: (err: Error, _patch, context) => {
+      if (context?.previous) {
+        restoreTaskQueries(queryClient, context.previous);
+      }
+      setError(err.message);
+    },
   });
 
   const createSubtaskMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (title: string) =>
       api.createTask(workspaceId, {
-        title: newSubtask.trim(),
+        title,
         parentTaskId: taskId,
         projectId: taskQuery.data?.task.projectId ?? null,
       }),
-    onSuccess: () => {
+    onMutate: async (title) => {
+      const key = ["tasks", workspaceId, { parentTaskId: taskId }] as const;
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<{ tasks: Task[] }>(key);
+      const now = new Date().toISOString();
+      const optimistic: Task = {
+        id: `tmp-${crypto.randomUUID()}`,
+        workspaceId,
+        projectId: taskQuery.data?.task.projectId ?? null,
+        columnId: null,
+        title,
+        description: null,
+        status: "todo",
+        priority: "none",
+        dueAt: null,
+        startAt: null,
+        completedAt: null,
+        position: Date.now(),
+        assigneeIds: [],
+        tagIds: [],
+        parentTaskId: taskId,
+        recurrence: null,
+        checklist: [],
+        createdById: "",
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      queryClient.setQueryData<{ tasks: Task[] }>(key, {
+        tasks: [...(previous?.tasks ?? []), optimistic],
+      });
       setNewSubtask("");
       setError(null);
-      void queryClient.invalidateQueries({
-        queryKey: ["tasks", workspaceId],
+      return { previous, optimisticId: optimistic.id, key };
+    },
+    onSuccess: (data, _title, context) => {
+      if (!context) return;
+      queryClient.setQueryData<{ tasks: Task[] }>(context.key, (old) => {
+        if (!old) return { tasks: [data.task] };
+        return {
+          tasks: old.tasks.map((task) =>
+            task.id === context.optimisticId ? data.task : task,
+          ),
+        };
       });
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error, _title, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(context.key, context.previous);
+      } else if (context?.key) {
+        queryClient.setQueryData(context.key, { tasks: [] });
+      }
+      setError(err.message);
+    },
   });
 
   const createTagMutation = useMutation({
@@ -136,7 +208,7 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
         current.includes(result.tag.id) ? current : [...current, result.tag.id],
       );
       void queryClient.invalidateQueries({ queryKey: ["tags", workspaceId] });
-      void saveMutation.mutateAsync({
+      void saveMutation.mutate({
         tagIds: [...tagIds, result.tag.id],
       });
     },
@@ -145,20 +217,23 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
 
   function persist(patch: Partial<Task>) {
     if (!canWrite) return;
-    void saveMutation.mutateAsync(patch);
+    saveMutation.mutate(patch);
   }
 
   const tags = tagsQuery.data?.tags ?? [];
   const projects = projectsQuery.data?.projects ?? [];
   const subtasks = subtasksQuery.data?.tasks ?? [];
-  const isSubtask = Boolean(taskQuery.data?.task.parentTaskId);
+  const isSubtask = Boolean(
+    (taskQuery.data?.task ?? initialTask)?.parentTaskId,
+  );
+  const task = taskQuery.data?.task ?? initialTask;
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <button
         type="button"
         aria-label="Close task"
-        className="absolute inset-0 bg-ink/50"
+        className="absolute inset-0 cursor-pointer bg-ink/50"
         onClick={onClose}
       />
       <aside className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-dashed border-hairline bg-canvas">
@@ -169,18 +244,18 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-muted hover:text-ink"
+            className="cursor-pointer text-sm text-muted hover:text-ink"
           >
             Close
           </button>
         </header>
 
         <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          {taskQuery.isLoading ? (
+          {!task && taskQuery.isPending ? (
             <p className="text-sm text-muted">Loading…</p>
-          ) : taskQuery.isError ? (
+          ) : taskQuery.isError && !task ? (
             <p className="text-sm text-ink">Could not load task.</p>
-          ) : (
+          ) : task ? (
             <>
               <input
                 value={title}
@@ -484,17 +559,44 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
                           checked={subtask.status === "done"}
                           disabled={!canWrite}
                           onChange={() => {
+                            const nextStatus =
+                              subtask.status === "done" ? "todo" : "done";
+                            const key = [
+                              "tasks",
+                              workspaceId,
+                              { parentTaskId: taskId },
+                            ] as const;
+                            queryClient.setQueryData<{ tasks: Task[] }>(
+                              key,
+                              (old) =>
+                                old
+                                  ? {
+                                      tasks: old.tasks.map((item) =>
+                                        item.id === subtask.id
+                                          ? { ...item, status: nextStatus }
+                                          : item,
+                                      ),
+                                    }
+                                  : old,
+                            );
                             void api
-                              .updateTask(subtask.id, {
-                                status:
-                                  subtask.status === "done" ? "todo" : "done",
-                              })
-                              .then(() =>
-                                queryClient.invalidateQueries({
-                                  queryKey: ["tasks", workspaceId],
-                                }),
-                              )
-                              .catch((err: Error) => setError(err.message));
+                              .updateTask(subtask.id, { status: nextStatus })
+                              .catch((err: Error) => {
+                                queryClient.setQueryData<{ tasks: Task[] }>(
+                                  key,
+                                  (old) =>
+                                    old
+                                      ? {
+                                          tasks: old.tasks.map((item) =>
+                                            item.id === subtask.id
+                                              ? { ...item, status: subtask.status }
+                                              : item,
+                                          ),
+                                        }
+                                      : old,
+                                );
+                                setError(err.message);
+                              });
                           }}
                         />
                         <span
@@ -520,7 +622,7 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
                       onSubmit={(event) => {
                         event.preventDefault();
                         if (!newSubtask.trim()) return;
-                        createSubtaskMutation.mutate();
+                        createSubtaskMutation.mutate(newSubtask.trim());
                       }}
                     >
                       <input
@@ -531,7 +633,7 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
                       />
                       <button
                         type="submit"
-                        disabled={createSubtaskMutation.isPending}
+                        disabled={!newSubtask.trim()}
                         className="h-9 border border-dashed border-hairline px-3 text-xs text-muted disabled:opacity-50"
                       >
                         Add
@@ -553,7 +655,7 @@ export function TaskDrawer({ workspaceId, taskId, onClose }: Props) {
                 members={membersQuery.data?.members ?? []}
               />
             </>
-          )}
+          ) : null}
           {error ? (
             <p className="text-sm text-ink" role="alert">
               {error}

@@ -6,6 +6,7 @@ import {
   jsonOk,
 } from "@/src/server/api/http";
 import { updateTaskBodySchema } from "@/src/server/api/schemas";
+import { publishRealtime } from "@/src/server/realtime/publish";
 
 type Params = { params: Promise<{ taskId: string }> };
 
@@ -40,6 +41,13 @@ export async function PATCH(request: Request, { params }: Params) {
         position: item.position ?? (index + 1) * 1000,
       })),
     });
+    if (task.projectId) {
+      void publishRealtime({
+        channel: `project:${task.projectId}`,
+        event: "task.upsert",
+        data: { task, version: Date.parse(task.updatedAt) },
+      });
+    }
     return jsonOk({ task });
   } catch (error) {
     return jsonError(error);
@@ -51,7 +59,15 @@ export async function DELETE(_request: Request, { params }: Params) {
     const { taskId } = await params;
     await assertObjectId(taskId, "taskId");
     const { sync } = await getSyncProvider();
+    const existing = await sync.getTask(taskId);
     await sync.deleteTask(taskId);
+    if (existing.projectId) {
+      void publishRealtime({
+        channel: `project:${existing.projectId}`,
+        event: "task.delete",
+        data: { taskId },
+      });
+    }
     return jsonOk({ ok: true });
   } catch (error) {
     return jsonError(error);

@@ -10,9 +10,15 @@ type Props = {
   taskId: string;
   workspaceId: string;
   members: WorkspaceMember[];
+  canWrite?: boolean;
 };
 
-export function CommentThread({ taskId, workspaceId, members }: Props) {
+export function CommentThread({
+  taskId,
+  workspaceId,
+  members,
+  canWrite = true,
+}: Props) {
   const queryClient = useQueryClient();
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -39,34 +45,35 @@ export function CommentThread({ taskId, workspaceId, members }: Props) {
 
   return (
     <section>
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#737373]">
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
         Comments
       </p>
       <ul className="space-y-3">
         {comments.map((comment) => (
-          <li key={comment.id} className="rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2">
+          <li key={comment.id} className="border border-dashed border-hairline bg-surface px-3 py-2">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-xs font-medium text-[#F5F5F5]">
+              <p className="text-xs font-medium text-ink">
                 {memberName(members, comment.authorId)}
               </p>
               <time
                 dateTime={comment.createdAt}
-                className="font-mono text-[10px] text-[#737373]"
+                className="font-mono text-[10px] text-muted"
               >
                 {new Date(comment.createdAt).toLocaleString()}
               </time>
             </div>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-[#A3A3A3]">
+            <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
               {comment.body}
             </p>
           </li>
         ))}
         {commentsQuery.isLoading ? (
-          <li className="text-xs text-[#737373]">Loading comments…</li>
+          <li className="text-xs text-muted">Loading comments…</li>
         ) : comments.length === 0 ? (
-          <li className="text-xs text-[#737373]">No comments yet.</li>
+          <li className="text-xs text-muted">No comments yet.</li>
         ) : null}
       </ul>
+      {canWrite ? (
       <form
         className="mt-3 flex flex-col gap-2"
         onSubmit={(event) => {
@@ -80,11 +87,11 @@ export function CommentThread({ taskId, workspaceId, members }: Props) {
           onChange={(event) => setBody(event.target.value)}
           placeholder="Write a comment…"
           rows={3}
-          className="w-full resize-none rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-sm text-[#F5F5F5] outline-none placeholder:text-[#737373]"
+          className="w-full resize-none border border-dashed border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-muted"
         />
         <div className="flex items-center justify-between">
           {error ? (
-            <p className="text-xs text-[#D9A759]" role="alert">
+            <p className="text-xs text-ink" role="alert">
               {error}
             </p>
           ) : (
@@ -93,12 +100,13 @@ export function CommentThread({ taskId, workspaceId, members }: Props) {
           <button
             type="submit"
             disabled={createMutation.isPending || !body.trim()}
-            className="h-8 rounded-lg bg-[#52D3FE] px-3 text-xs font-semibold text-[#121212] disabled:opacity-50"
+            className="h-8 bg-ink px-3 text-xs font-semibold text-canvas disabled:opacity-50"
           >
             Comment
           </button>
         </div>
       </form>
+      ) : null}
     </section>
   );
 }

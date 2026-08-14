@@ -25,6 +25,7 @@ export const createTaskBodySchema = z.object({
   description: z.string().trim().max(20_000).nullable().optional(),
   projectId: z.string().min(1).nullable().optional(),
   columnId: z.string().min(1).nullable().optional(),
+  parentTaskId: z.string().min(1).nullable().optional(),
   status: z.enum(TASK_STATUSES).optional(),
   priority: z.enum(TASK_PRIORITIES).optional(),
   dueAt: dueAtSchema,
@@ -39,6 +40,7 @@ export const updateTaskBodySchema = z
     dueAt: dueAtSchema,
     projectId: z.string().min(1).nullable().optional(),
     columnId: z.string().min(1).nullable().optional(),
+    parentTaskId: z.string().min(1).nullable().optional(),
     position: z.number().finite().optional(),
     tagIds: z.array(z.string().min(1)).optional(),
     assigneeIds: z.array(z.string().min(1)).optional(),
@@ -66,6 +68,10 @@ export const updateTaskBodySchema = z
 
 export const listTasksQuerySchema = z.object({
   projectId: z.string().min(1).optional(),
+  inbox: z.enum(["1", "true"]).optional(),
+  root: z.enum(["1", "true"]).optional(),
+  parentTaskId: z.string().min(1).optional(),
+  assigneeId: z.string().min(1).optional(),
   status: z.string().optional(),
   priority: z.string().optional(),
   search: z.string().optional(),

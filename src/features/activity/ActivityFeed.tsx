@@ -1,96 +1,50 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
-import type { ActivityEvent } from "@/src/core/sync/types";
-import {
-  memberName,
-  type WorkspaceMember,
-} from "@/src/features/workspace/members";
+import { describeActivity } from "@/src/features/activity/format";
+import type { WorkspaceMember } from "@/src/features/workspace/members";
 
 type Props = {
   workspaceId: string;
-  taskId: string;
+  taskId?: string;
   members: WorkspaceMember[];
 };
 
-function formatChange(value: unknown): string {
-  if (value == null) return "none";
-  if (typeof value === "string") return value.replaceAll("_", " ");
-  return String(value);
-}
-
-function describeEvent(event: ActivityEvent, members: WorkspaceMember[]) {
-  const actor = memberName(members, event.actorId);
-  const meta = event.metadata ?? {};
-
-  switch (event.verb) {
-    case "task.created":
-      return `${actor} created this task`;
-    case "task.deleted":
-      return `${actor} deleted this task`;
-    case "comment.created":
-      return `${actor} commented`;
-    case "task.assigned": {
-      const to = Array.isArray(meta.to)
-        ? meta.to.map((id) => memberName(members, String(id)))
-        : [];
-      return to.length
-        ? `${actor} assigned ${to.join(", ")}`
-        : `${actor} cleared assignees`;
-    }
-    case "task.updated": {
-      const parts: string[] = [];
-      for (const [field, change] of Object.entries(meta)) {
-        if (
-          change &&
-          typeof change === "object" &&
-          "from" in change &&
-          "to" in change
-        ) {
-          const typed = change as { from: unknown; to: unknown };
-          parts.push(
-            `${field} ${formatChange(typed.from)} → ${formatChange(typed.to)}`,
-          );
-        }
-      }
-      return parts.length
-        ? `${actor} updated ${parts.join(", ")}`
-        : `${actor} updated this task`;
-    }
-    default:
-      return `${actor} ${event.verb}`;
-  }
-}
-
 export function ActivityFeed({ workspaceId, taskId, members }: Props) {
-  const activityQuery = useQuery({
+  const activityQuery = useInfiniteQuery({
     queryKey: qk.activity(workspaceId, taskId),
-    queryFn: () => api.listActivity(workspaceId, { taskId }),
+    queryFn: ({ pageParam }) =>
+      api.listActivity(workspaceId, {
+        taskId,
+        cursor: pageParam,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor,
   });
 
-  const items = activityQuery.data?.items ?? [];
+  const items = activityQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <section>
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#737373]">
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
         Activity
       </p>
       {activityQuery.isLoading ? (
-        <p className="text-xs text-[#737373]">Loading activity…</p>
+        <p className="text-xs text-muted">Loading activity…</p>
       ) : items.length === 0 ? (
-        <p className="text-xs text-[#737373]">No activity yet.</p>
+        <p className="text-xs text-muted">No activity yet.</p>
       ) : (
         <ol className="space-y-2">
           {items.map((event) => (
             <li key={event.id} className="flex flex-col gap-0.5">
-              <p className="text-xs text-[#A3A3A3]">
-                {describeEvent(event, members)}
+              <p className="text-xs text-muted">
+                {describeActivity(event, members)}
               </p>
               <time
                 dateTime={event.createdAt}
-                className="font-mono text-[10px] text-[#737373]"
+                className="font-mono text-[10px] text-muted"
               >
                 {new Date(event.createdAt).toLocaleString()}
               </time>
@@ -98,6 +52,16 @@ export function ActivityFeed({ workspaceId, taskId, members }: Props) {
           ))}
         </ol>
       )}
+      {activityQuery.hasNextPage ? (
+        <button
+          type="button"
+          onClick={() => void activityQuery.fetchNextPage()}
+          disabled={activityQuery.isFetchingNextPage}
+          className="mt-3 text-xs text-ink hover:underline disabled:opacity-50"
+        >
+          {activityQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+        </button>
+      ) : null}
     </section>
   );
 }

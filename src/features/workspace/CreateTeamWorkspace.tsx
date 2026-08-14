@@ -28,7 +28,7 @@ export function CreateTeamWorkspace() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm text-[#52D3FE] hover:bg-[#1E1E1E]"
+        className="mt-2 w-full px-3 py-2 text-left text-sm text-ink hover:bg-ink hover:text-canvas"
       >
         New team workspace
       </button>
@@ -48,26 +48,26 @@ export function CreateTeamWorkspace() {
         value={name}
         onChange={(event) => setName(event.target.value)}
         placeholder="Team name"
-        className="h-8 rounded-md border border-[#2A2A2A] bg-[#1E1E1E] px-2 text-xs text-[#F5F5F5] outline-none"
+        className="h-8 border border-dashed border-hairline bg-surface px-2 text-xs text-ink outline-none"
       />
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={createMutation.isPending || !name.trim()}
-          className="h-8 flex-1 rounded-md bg-[#52D3FE] text-xs font-semibold text-[#121212] disabled:opacity-50"
+          className="h-8 flex-1 bg-ink text-xs font-semibold text-canvas disabled:opacity-50"
         >
           Create
         </button>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="h-8 rounded-md border border-[#2A2A2A] px-2 text-xs text-[#A3A3A3]"
+          className="h-8 border border-dashed border-hairline px-2 text-xs text-muted"
         >
           Cancel
         </button>
       </div>
       {createMutation.isError ? (
-        <p className="text-xs text-[#D9A759]">
+        <p className="text-xs text-ink">
           {(createMutation.error as Error).message}
         </p>
       ) : null}

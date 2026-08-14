@@ -13,8 +13,13 @@ export default async function WorkspaceIndexPage({ params }: Params) {
     if (!project) {
       return (
         <main className="mx-auto flex w-full max-w-lg flex-col gap-3 px-6 py-16">
-          <h1 className="text-2xl font-semibold tracking-tight">No projects yet</h1>
-          <p className="text-sm text-[#A3A3A3]">
+          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted">
+            Workspace
+          </p>
+          <h1 className="text-perforated mt-2 font-display text-5xl font-bold tracking-[-0.05em] uppercase">
+            No projects yet
+          </h1>
+          <p className="text-sm text-muted">
             Create a project in the sidebar to start a board.
           </p>
         </main>

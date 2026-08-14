@@ -63,9 +63,9 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
   return (
     <div className="flex flex-col gap-6">
       {canManage ? (
-        <section className="rounded-xl border border-[#2A2A2A] bg-[#1E1E1E] p-4">
-          <h2 className="text-sm font-medium text-[#F5F5F5]">Invite link</h2>
-          <p className="mt-1 text-xs text-[#A3A3A3]">
+        <section className="border border-dashed border-hairline bg-surface p-4">
+          <h2 className="text-sm font-medium text-ink">Invite link</h2>
+          <p className="mt-1 text-xs text-muted">
             Copy a one-time link. It expires in 7 days.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -74,7 +74,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
               onChange={(event) =>
                 setInviteRole(event.target.value as Exclude<MemberRole, "owner">)
               }
-              className="h-10 rounded-lg border border-[#2A2A2A] bg-[#121212] px-2 text-sm text-[#F5F5F5]"
+              className="h-10 border border-dashed border-hairline bg-canvas px-2 text-sm text-ink"
             >
               {INVITE_ROLES.map((role) => (
                 <option key={role} value={role}>
@@ -85,7 +85,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
             <button
               type="button"
               onClick={() => inviteMutation.mutate()}
-              className="h-10 rounded-lg bg-[#52D3FE] px-4 text-sm font-semibold text-[#121212]"
+              className="h-10 bg-ink px-4 text-sm font-semibold text-canvas"
             >
               Generate link
             </button>
@@ -95,7 +95,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
               <input
                 readOnly
                 value={inviteUrl}
-                className="h-10 flex-1 truncate rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-xs text-[#F5F5F5]"
+                className="h-10 flex-1 truncate border border-dashed border-hairline bg-canvas px-3 text-xs text-ink"
               />
               <button
                 type="button"
@@ -103,7 +103,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
                   await navigator.clipboard.writeText(inviteUrl);
                   setCopied(true);
                 }}
-                className="h-10 rounded-lg border border-[#2A2A2A] px-3 text-sm text-[#A3A3A3]"
+                className="h-10 border border-dashed border-hairline px-3 text-sm text-muted"
               >
                 {copied ? "Copied" : "Copy"}
               </button>
@@ -112,10 +112,10 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
         </section>
       ) : null}
 
-      <section className="overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1E1E1E]">
+      <section className="overflow-hidden border border-dashed border-hairline bg-surface">
         <table className="w-full text-left text-sm">
-          <thead className="font-mono text-[10px] uppercase tracking-wide text-[#737373]">
-            <tr className="border-b border-[#2A2A2A]">
+          <thead className="font-mono text-[10px] uppercase tracking-wide text-muted">
+            <tr className="border-b border-dashed border-hairline">
               <th className="px-4 py-3">Member</th>
               <th className="px-4 py-3">Role</th>
               {canManage ? <th className="px-4 py-3" /> : null}
@@ -123,10 +123,10 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
           </thead>
           <tbody>
             {members.map((member) => (
-              <tr key={member.userId} className="border-b border-[#2A2A2A] last:border-0">
+              <tr key={member.userId} className="border-b border-dashed border-hairline last:border-0">
                 <td className="px-4 py-3">
-                  <p className="text-[#F5F5F5]">{member.displayName}</p>
-                  <p className="text-xs text-[#737373]">{member.email}</p>
+                  <p className="text-ink">{member.displayName}</p>
+                  <p className="text-xs text-muted">{member.email}</p>
                 </td>
                 <td className="px-4 py-3">
                   {canManage && member.userId !== currentUserId ? (
@@ -138,7 +138,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
                           role: event.target.value as MemberRole,
                         })
                       }
-                      className="h-9 rounded-md border border-[#2A2A2A] bg-[#121212] px-2 text-xs text-[#F5F5F5]"
+                      className="h-9 border border-dashed border-hairline bg-canvas px-2 text-xs text-ink"
                     >
                       {ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -147,7 +147,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
                       ))}
                     </select>
                   ) : (
-                    <span className="font-mono text-xs uppercase text-[#A3A3A3]">
+                    <span className="font-mono text-xs uppercase text-muted">
                       {member.role}
                     </span>
                   )}
@@ -158,7 +158,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
                       <button
                         type="button"
                         onClick={() => removeMutation.mutate(member.userId)}
-                        className="text-xs text-[#A3A3A3] hover:text-[#D9A759]"
+                        className="text-xs text-muted hover:text-ink"
                       >
                         Remove
                       </button>
@@ -171,7 +171,7 @@ export function MembersPanel({ workspaceId, currentUserId, canManage }: Props) {
         </table>
       </section>
       {error ? (
-        <p className="text-sm text-[#D9A759]" role="alert">
+        <p className="text-sm text-ink" role="alert">
           {error}
         </p>
       ) : null}

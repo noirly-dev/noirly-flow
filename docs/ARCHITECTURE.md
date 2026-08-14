@@ -44,7 +44,7 @@ One product surface; mode is determined by **workspace context**, not separate a
 | **Auth** | **Auth.js (NextAuth v5) + Noirly Identity OIDC** | Identity already provides register/login/verify, OAuth2/OIDC, PKCE, sessions. Flow must not re-implement passwords. “Continue with Noirly” matches the ecosystem. Google can be added later **on Identity**, not as a parallel IdP in Flow. |
 | **Primary data store** | **MongoDB + Mongoose** | Same MongoDB host as Identity, **separate database** (`noirly-flow`). Flow only stores Identity `sub` as `user.identitySub`. Collections stay normalized (memberships, columns, tasks as docs) so RBAC and DnD reorder stay explicit; embed only checklist items / recurrence on tasks. |
 | **App API** | **Next.js Route Handlers** (`app/api/**`) | Same deployable as the UI for MVP; domain in `src/core` / `src/server`. |
-| **Realtime** | **Ably** (Channels + Presence) | DB-agnostic, works with `SyncProvider`, excellent presence APIs, no need to operate Socket.IO. React Query remains source of truth; Ably invalidates/patches. |
+| **Realtime** | **noirly-realtime** (self-hosted `ws` + Redis) | Replaces Ably. Channels + presence + sequenced replay. React Query remains source of truth; realtime invalidates/patches. See `noirly-realtime/docs/ARCHITECTURE.md`. |
 | **Client server-state** | **TanStack Query v5** | Cache, optimistic DnD, keyed by workspace/board. |
 | **Client UI state** | **Zustand** | Workspace switcher, view mode, command palette, selection — not server data. |
 | **Forms** | **React Hook Form + Zod** | Aligns with Identity’s Zod culture; shared schemas in `src/core`. |
@@ -97,7 +97,7 @@ noirly-flow/
 │   │   ├── comments/
 │   │   ├── activity/
 │   │   ├── search/
-│   │   └── realtime/token/route.ts   # Ably auth token for client
+│   │   └── realtime/token/route.ts   # noirly-realtime JWT for client
 │   ├── layout.tsx
 │   ├── globals.css
 │   └── not-found.tsx
@@ -116,7 +116,7 @@ noirly-flow/
 │   │   ├── auth/                 # session helpers + first-login bootstrap
 │   │   ├── providers/
 │   │   │   └── mongo-sync-provider.ts
-│   │   ├── realtime/             # Ably server publish
+│   │   ├── realtime/             # noirly-realtime publisher
 │   │   └── trpc-or-rest/         # route handler services
 │   ├── features/                 # domain UI features
 │   │   ├── auth/
@@ -167,7 +167,7 @@ noirly/
 1. **`src/ui`** — no data fetching, no Zustand of domain entities  
 2. **`src/features/*`** — compose UI + hooks; call React Query  
 3. **`src/core`** — pure TS: schemas, permissions, SyncProvider types  
-4. **`src/server`** — Mongoose, Auth.js, Ably, route handlers only
+4. **`src/server`** — Mongoose, Auth.js, noirly-realtime publisher, route handlers only
 5. Features never import Mongoose models directly
 
 ---
@@ -442,7 +442,7 @@ All under `/api`, JSON, Zod-validated. Auth via Auth.js session cookie.
 | `POST` | `/api/projects/:id/reorder` | batch DnD |
 | `GET/POST` | `/api/tasks/:id/comments` | |
 | `GET` | `/api/workspaces/:id/activity` | cursor pagination |
-| `GET` | `/api/realtime/token` | Ably token request (scoped channels) |
+| `GET` | `/api/realtime/token` | noirly-realtime JWT (scoped channel caps) |
 | `GET` | `/api/search?q=` | workspace-scoped |
 
 Errors follow Identity-style envelopes:
@@ -457,7 +457,7 @@ Errors follow Identity-style envelopes:
 | --- | --- |
 | Firebase | Rejected for MVP — couples auth+data; conflicts with Noirly Identity SSO story |
 | Supabase (full) | Rejected — dual auth vs Noirly Identity is worse than Identity OIDC + Flow Mongo + Ably |
-| **MongoDB + Mongoose + Ably** | Chosen — Identity owns authN (Mongo `noirly-identity`); Flow owns authZ + data (Mongo `noirly-flow`) + realtime |
+| **MongoDB + Mongoose + noirly-realtime** | Chosen — Identity owns authN (Mongo `noirly-identity`); Flow owns authZ + data (Mongo `noirly-flow`) + realtime |
 
 ---
 
@@ -528,13 +528,13 @@ Use `onMutate` / `onError` / `onSettled` consistently in `src/features/**/mutati
 ### 6.1 Model
 
 ```text
-User A mutates → API persists → server publishes Ably event
+User A mutates → API persists → server publishes noirly-realtime event
                                       ↓
-User B / A other tabs ← Ably message ← invalidate or patch React Query
+User B / A other tabs ← WebSocket event ← invalidate or patch React Query
 ```
 
 - **Source of truth:** MongoDB (`noirly-flow`)  
-- **Ephemeral collab:** Ably presence + events  
+- **Ephemeral collab:** noirly-realtime presence + events  
 - **Client cache:** React Query  
 
 ### 6.2 Channels
@@ -569,7 +569,7 @@ type RealtimeEvent =
 
 ### 6.5 MVP fallback
 
-If Ably is delayed: **polling** `refetchInterval: 5_000` on active board query. Same Query keys — Ably later only removes polling.
+If realtime is delayed: **polling** `refetchInterval: 5_000` on active board query. Same Query keys — live events later only remove polling.
 
 ---
 
@@ -800,7 +800,7 @@ Contrast: cyan on `#121212` / `#1E1E1E` must meet AA for text ≥ 14px; use acce
 
 - Library: **@dnd-kit/core + sortable**  
 - Drag handle on task card (keyboard: Space/Enter to pick up, arrows to move, Space to drop)  
-- On drop: optimistic reorder → `POST /api/projects/:id/reorder` → Ably `tasks.reordered`  
+- On drop: optimistic reorder → `POST /api/projects/:id/reorder` → noirly-realtime `tasks.reordered`  
 - Cross-column drop may map `status` via column `statusMapped`  
 - Collision detection: `closestCorners`  
 - Autoscroll near column edges  
@@ -814,7 +814,7 @@ Contrast: cyan on `#121212` / `#1E1E1E` must meet AA for text ≥ 14px; use acce
 
 ### 11.3 Presence
 
-- Ably Presence on `project:{id}`  
+- Presence on `project:{id}` (noirly-realtime)  
 - Show up to 5 avatars + `+N`  
 - Soft highlight on task when another user has task drawer open (event `presence.taskFocus`) — v1  
 
@@ -868,7 +868,7 @@ Ignore shortcuts when focus is in inputs (except palette).
 - Team workspaces + invites (email link or copy invite)  
 - RBAC enforcement UI + API  
 - Assignment + comments + activity log  
-- Ably realtime for board + presence avatars  
+- noirly-realtime for board + presence avatars  
 - Optimistic multiplayer DnD validation  
 
 **Exit criteria:** Two browsers on one board see live updates; viewer cannot mutate.
@@ -906,9 +906,10 @@ AUTH_NOIRLY_ISSUER=http://localhost:3000
 AUTH_NOIRLY_CLIENT_ID=noirly-flow
 AUTH_NOIRLY_CLIENT_SECRET=...
 
-# Ably
-ABLY_API_KEY=...
-NEXT_PUBLIC_ABLY_KEY=...   # if using public key + token auth preferred instead
+# noirly-realtime
+REALTIME_JWT_SECRET=...
+NEXT_PUBLIC_REALTIME_WS_URL=ws://127.0.0.1:4001/ws
+REDIS_URL=...              # publisher + optional shared Redis
 ```
 
 ## Appendix B — Testing strategy
@@ -925,7 +926,7 @@ NEXT_PUBLIC_ABLY_KEY=...   # if using public key + token auth preferred instead
 | Risk | Mitigation |
 | --- | --- |
 | Dual-DB risk (Identity + Flow both Mongo) | Separate DBs (`noirly-identity` / `noirly-flow`); only couple on `identitySub`; no cross-DB joins |
-| Realtime fanout cost | Scope Ably channels per project; token auth |
+| Realtime fanout cost | Scope channels per project; short-lived JWT caps |
 | DnD races | Server authoritative positions; version checks |
 | Scope creep (mobile parity) | Keep logic in `core`; ship web-first |
 
@@ -942,8 +943,8 @@ NEXT_PUBLIC_ABLY_KEY=...   # if using public key + token auth preferred instead
 7. Filters / Cmd+K  
 8. Team workspace + RBAC  
 9. Comments / activity  
-10. Ably wiring  
+10. noirly-realtime wiring  
 
 ---
 
-*End of architecture document. Ready for implementation without further structural decisions unless product chooses to replace Ably or Postgres.*
+*End of architecture document. Ready for implementation without further structural decisions unless product chooses to replace noirly-realtime or Postgres.*

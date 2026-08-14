@@ -28,6 +28,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  me() {
+    return request<{
+      user: {
+        id: string;
+        email: string;
+        displayName: string;
+        identitySub: string;
+      };
+    }>("/api/me");
+  },
   listWorkspaces() {
     return request<{ workspaces: Workspace[] }>("/api/workspaces");
   },
@@ -108,6 +118,10 @@ export const api = {
     workspaceId: string,
     query: {
       projectId?: string;
+      inbox?: boolean | string;
+      root?: boolean | string;
+      parentTaskId?: string;
+      assigneeId?: string;
       status?: string;
       priority?: string;
       search?: string;
@@ -115,7 +129,17 @@ export const api = {
     } = {},
   ) {
     const params = new URLSearchParams();
-    if (query.projectId) params.set("projectId", query.projectId);
+    if (query.inbox === true || query.inbox === "1" || query.inbox === "true") {
+      params.set("inbox", "1");
+    } else if (query.projectId) {
+      params.set("projectId", query.projectId);
+    }
+    if (query.root === true || query.root === "1" || query.root === "true") {
+      params.set("root", "1");
+    } else if (query.parentTaskId) {
+      params.set("parentTaskId", query.parentTaskId);
+    }
+    if (query.assigneeId) params.set("assigneeId", query.assigneeId);
     if (query.status) params.set("status", query.status);
     if (query.priority) params.set("priority", query.priority);
     if (query.search) params.set("search", query.search);
@@ -130,6 +154,7 @@ export const api = {
     body: {
       title: string;
       projectId?: string | null;
+      parentTaskId?: string | null;
       status?: Task["status"];
       priority?: Task["priority"];
       dueAt?: string | null;

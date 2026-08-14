@@ -11,7 +11,7 @@ export function NoirlyLoginButton({ redirectTo = "/" }: { redirectTo?: string })
       }}
     >
       <button
-        className="flex h-12 w-full items-center justify-center rounded-lg bg-[#52D3FE] px-5 text-sm font-semibold text-[#121212] transition-colors hover:bg-[#7adefe]"
+        className="flex h-12 w-full items-center justify-center bg-panel-ink px-5 font-mono text-[11px] font-semibold tracking-[0.16em] text-panel uppercase transition-colors hover:bg-transparent hover:text-panel-ink hover:outline hover:outline-1 hover:outline-dashed hover:outline-panel-ink"
         type="submit"
       >
         Noirly Login

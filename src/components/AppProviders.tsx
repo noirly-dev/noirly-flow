@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { FlowRealtimeProvider } from "@/src/features/realtime/FlowRealtimeProvider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -16,5 +17,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
       }),
   );
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <FlowRealtimeProvider>{children}</FlowRealtimeProvider>
+    </QueryClientProvider>
+  );
 }

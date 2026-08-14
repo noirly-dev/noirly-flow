@@ -2,16 +2,20 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { RealtimeClientContext } from "@noirly-dev/realtime-client/react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { qk } from "@/src/core/sync/query-keys";
 import { api } from "@/src/lib/api-client";
 import type { Tag, Task } from "@/src/core/sync/types";
 import type { TaskPriority, TaskStatus } from "@/src/core/models/enums";
 import { TaskBoard } from "@/src/features/task/TaskBoard";
+import { TaskCalendar } from "@/src/features/task/TaskCalendar";
 import { TaskDueBadge } from "@/src/features/task/TaskDueBadge";
 import { AssigneeChips } from "@/src/features/task/AssigneeChips";
 import { TagChips, TaskDrawer } from "@/src/features/task/TaskDrawer";
+import { ProjectRealtime } from "@/src/features/realtime/ProjectRealtime";
 import type { WorkspaceMember } from "@/src/features/workspace/members";
+import { useCan } from "@/src/features/workspace/WorkspaceRoleContext";
 import {
   dateInputToIso,
   isoToDateInput,
@@ -56,37 +60,101 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("none");
   const [dueDate, setDueDate] = useState("");
-  const [view, setView] = useState<"list" | "board">("board");
+  const [view, setView] = useState<"list" | "board" | "calendar">(
+    projectId ? "board" : "list",
+  );
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "">("");
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "">("");
   const [dueFilter, setDueFilter] = useState<DuePreset | "">("");
+  const [assignedToMe, setAssignedToMe] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
+  const canWrite = useCan("task.write");
+  const isInbox = !projectId;
+
+  const meQuery = useQuery({
+    queryKey: ["me"],
+    queryFn: () => api.me(),
+  });
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      const inField =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.tagName === "SELECT" ||
+        target?.isContentEditable;
+      if (inField || event.metaKey || event.ctrlKey || event.altKey) return;
+
+      if (event.key === "/") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+      if (event.key === "1") {
+        event.preventDefault();
+        setView("list");
+        return;
+      }
+      if (event.key === "2" && projectId) {
+        event.preventDefault();
+        setView("board");
+        return;
+      }
+      if (event.key === "3") {
+        event.preventDefault();
+        setView("calendar");
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [projectId]);
+
   const filters = useMemo(
     () => ({
       projectId: projectId ?? undefined,
+      inbox: isInbox ? "1" : undefined,
+      root: "1",
+      assigneeId:
+        assignedToMe && meQuery.data?.user.id
+          ? meQuery.data.user.id
+          : undefined,
       status: statusFilter || undefined,
       priority: priorityFilter || undefined,
       search: search || undefined,
       due: dueFilter || undefined,
     }),
-    [projectId, statusFilter, priorityFilter, search, dueFilter],
+    [
+      projectId,
+      isInbox,
+      assignedToMe,
+      meQuery.data?.user.id,
+      statusFilter,
+      priorityFilter,
+      search,
+      dueFilter,
+    ],
   );
 
   const hasActiveFilters = Boolean(
-    search || statusFilter || priorityFilter || dueFilter,
+    search || statusFilter || priorityFilter || dueFilter || assignedToMe,
   );
+
+  const refetchInterval = useTaskRefetchInterval();
 
   const tasksQuery = useQuery({
     queryKey: qk.tasks(workspaceId, filters),
     queryFn: () => api.listTasks(workspaceId, filters),
+    refetchInterval,
   });
 
   const projectQuery = useQuery({
@@ -221,42 +289,64 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-xs tracking-[0.2em] text-[#52D3FE]">
-            {projectName.toUpperCase()}
+          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted">
+            {projectName}
           </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Tasks</h2>
-          <p className="mt-1 text-sm text-[#A3A3A3]">
+          <h2 className="text-perforated mt-1 font-display text-4xl font-bold tracking-[-0.05em] uppercase md:text-5xl">
+            Tasks
+          </h2>
+          <p className="mt-1 text-sm text-muted">
             {openCount} open · {tasks.length} shown
+            {!canWrite ? " · view only" : ""}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setView("list")}
-            className={`rounded-md px-3 py-1.5 text-sm ${
-              view === "list"
-                ? "bg-[#52D3FE] text-[#121212]"
-                : "border border-[#2A2A2A] text-[#A3A3A3] hover:text-[#F5F5F5]"
-            }`}
-          >
-            List
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("board")}
-            className={`rounded-md px-3 py-1.5 text-sm ${
-              view === "board"
-                ? "bg-[#52D3FE] text-[#121212]"
-                : "border border-[#2A2A2A] text-[#A3A3A3] hover:text-[#F5F5F5]"
-            }`}
-          >
-            Board
-          </button>
+        <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
+          {projectId && process.env.NEXT_PUBLIC_REALTIME_WS_URL ? (
+            <ProjectRealtime workspaceId={workspaceId} projectId={projectId} />
+          ) : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`px-3 py-1.5 text-sm ${
+                view === "list"
+                  ? "bg-ink text-canvas"
+                  : "border border-dashed border-hairline text-muted hover:text-ink"
+              }`}
+            >
+              List
+            </button>
+            {projectId ? (
+              <button
+                type="button"
+                onClick={() => setView("board")}
+                className={`px-3 py-1.5 text-sm ${
+                  view === "board"
+                    ? "bg-ink text-canvas"
+                    : "border border-dashed border-hairline text-muted hover:text-ink"
+                }`}
+              >
+                Board
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setView("calendar")}
+              className={`px-3 py-1.5 text-sm ${
+                view === "calendar"
+                  ? "bg-ink text-canvas"
+                  : "border border-dashed border-hairline text-muted hover:text-ink"
+              }`}
+            >
+              Calendar
+            </button>
+          </div>
         </div>
       </header>
 
+      {canWrite ? (
       <form
-        className="flex flex-col gap-3 rounded-xl border border-[#2A2A2A] bg-[#1E1E1E] p-4 lg:flex-row lg:items-center"
+        className="flex flex-col gap-3 border border-dashed border-hairline bg-surface p-4 lg:flex-row lg:items-center"
         onSubmit={(event) => {
           event.preventDefault();
           if (!title.trim()) return;
@@ -267,12 +357,12 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Add a task…"
-          className="h-11 flex-1 rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-sm text-[#F5F5F5] outline-none placeholder:text-[#737373] focus:border-[#52D3FE]"
+          className="h-11 flex-1 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-ink"
         />
         <select
           value={priority}
           onChange={(event) => setPriority(event.target.value as TaskPriority)}
-          className="h-11 rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-sm text-[#F5F5F5]"
+          className="h-11 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
         >
           {PRIORITY_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -284,30 +374,48 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           type="date"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
-          className="h-11 rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-sm text-[#F5F5F5]"
+          className="h-11 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
         />
         <button
           type="submit"
           disabled={createMutation.isPending || !title.trim()}
-          className="h-11 rounded-lg bg-[#52D3FE] px-4 text-sm font-semibold text-[#121212] disabled:opacity-50"
+          className="h-11 bg-ink px-4 text-sm font-semibold text-canvas disabled:opacity-50"
         >
           Add
         </button>
       </form>
+      ) : (
+        <p className="border border-dashed border-hairline bg-surface px-4 py-3 text-sm text-muted">
+          You have view-only access. Ask an admin if you need to edit tasks.
+        </p>
+      )}
 
-      <div className="flex flex-col gap-3 rounded-xl border border-[#2A2A2A] bg-[#1E1E1E] p-4 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 border border-dashed border-hairline bg-surface p-4 lg:flex-row lg:items-center">
         <input
+          ref={searchInputRef}
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search tasks…"
-          className="h-10 flex-1 rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-sm text-[#F5F5F5] outline-none placeholder:text-[#737373] focus:border-[#52D3FE]"
+          placeholder="Search tasks… (/)"
+          className="h-10 flex-1 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-ink"
         />
+        <button
+          type="button"
+          onClick={() => setAssignedToMe((value) => !value)}
+          disabled={!meQuery.data?.user.id}
+          className={`h-10 px-3 text-sm disabled:opacity-50 ${
+            assignedToMe
+              ? "bg-ink text-canvas"
+              : "border border-dashed border-hairline text-muted hover:text-ink"
+          }`}
+        >
+          Assigned to me
+        </button>
         <select
           value={statusFilter}
           onChange={(event) =>
             setStatusFilter(event.target.value as TaskStatus | "")
           }
-          className="h-10 rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-sm text-[#F5F5F5]"
+          className="h-10 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
         >
           <option value="">Any status</option>
           {STATUS_OPTIONS.map((option) => (
@@ -321,7 +429,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setPriorityFilter(event.target.value as TaskPriority | "")
           }
-          className="h-10 rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-sm text-[#F5F5F5]"
+          className="h-10 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
         >
           <option value="">Any priority</option>
           {PRIORITY_OPTIONS.map((option) => (
@@ -335,7 +443,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setDueFilter(event.target.value as DuePreset | "")
           }
-          className="h-10 rounded-lg border border-[#2A2A2A] bg-[#121212] px-3 text-sm text-[#F5F5F5]"
+          className="h-10 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
         >
           {DUE_FILTERS.map((option) => (
             <option key={option.value || "any"} value={option.value}>
@@ -352,8 +460,9 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
               setStatusFilter("");
               setPriorityFilter("");
               setDueFilter("");
+              setAssignedToMe(false);
             }}
-            className="h-10 rounded-lg border border-[#2A2A2A] px-3 text-sm text-[#A3A3A3] hover:text-[#F5F5F5]"
+            className="h-10 border border-dashed border-hairline px-3 text-sm text-muted hover:text-ink"
           >
             Clear
           </button>
@@ -361,20 +470,26 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       </div>
 
       {error ? (
-        <p className="text-sm text-[#D9A759]" role="alert">
+        <p className="text-sm text-ink" role="alert">
           {error}
         </p>
       ) : null}
 
       {tasksQuery.isLoading ? (
-        <p className="text-sm text-[#A3A3A3]">Loading tasks…</p>
+        <p className="text-sm text-muted">Loading tasks…</p>
       ) : tasksQuery.isError ? (
-        <p className="text-sm text-[#D9A759]">Could not load tasks.</p>
+        <p className="text-sm text-ink">Could not load tasks.</p>
       ) : view === "list" ? (
         <TaskList
           tasks={tasks}
           tags={tagsQuery.data?.tags ?? []}
           members={membersQuery.data?.members ?? []}
+          canWrite={canWrite}
+          emptyLabel={
+            isInbox
+              ? "Inbox is empty. Add a task that is not in a project."
+              : "No matching tasks."
+          }
           onOpenTask={openTask}
           onStatusChange={(taskId, status) =>
             updateMutation.mutate({ taskId, patch: { status } })
@@ -387,14 +502,17 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           }
           onDelete={(taskId) => deleteMutation.mutate(taskId)}
         />
+      ) : view === "calendar" ? (
+        <TaskCalendar tasks={tasks} onOpenTask={openTask} />
       ) : !projectId ? (
-        <p className="text-sm text-[#D9A759]">No project available for board.</p>
+        <p className="text-sm text-ink">No project available for board.</p>
       ) : (
         <TaskBoard
           projectId={projectId}
           tasks={tasks}
           columns={projectQuery.data?.project.columns}
           members={membersQuery.data?.members ?? []}
+          canWrite={canWrite}
           onReorder={async (moves) => {
             await reorderMutation.mutateAsync(moves);
           }}
@@ -417,6 +535,8 @@ function TaskList({
   tasks,
   tags,
   members,
+  canWrite,
+  emptyLabel,
   onOpenTask,
   onStatusChange,
   onPriorityChange,
@@ -426,6 +546,8 @@ function TaskList({
   tasks: Task[];
   tags: Tag[];
   members: WorkspaceMember[];
+  canWrite: boolean;
+  emptyLabel: string;
   onOpenTask: (taskId: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onPriorityChange: (taskId: string, priority: TaskPriority) => void;
@@ -434,14 +556,14 @@ function TaskList({
 }) {
   if (tasks.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-[#2A2A2A] px-4 py-10 text-center text-sm text-[#A3A3A3]">
-        No matching tasks.
+      <p className="border border-dashed border-hairline px-4 py-10 text-center text-sm text-muted">
+        {emptyLabel}
       </p>
     );
   }
 
   return (
-    <ul className="divide-y divide-[#2A2A2A] rounded-xl border border-[#2A2A2A] bg-[#1E1E1E]">
+    <ul className="divide-y divide-dashed divide-hairline border border-dashed border-hairline bg-surface">
       {tasks.map((task) => (
         <li
           key={task.id}
@@ -453,14 +575,14 @@ function TaskList({
               onClick={() => onOpenTask(task.id)}
               className={`truncate text-left text-sm ${
                 task.status === "done" || task.status === "canceled"
-                  ? "text-[#737373] line-through"
-                  : "text-[#F5F5F5] hover:text-[#52D3FE]"
+                  ? "text-muted line-through"
+                  : "text-ink hover:text-ink"
               }`}
             >
               {task.title}
             </button>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-[#737373]">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-muted">
                 {task.priority === "none" ? "no priority" : task.priority}
               </p>
               <TaskDueBadge dueAt={task.dueAt} />
@@ -471,10 +593,11 @@ function TaskList({
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={task.status}
+              disabled={!canWrite}
               onChange={(event) =>
                 onStatusChange(task.id, event.target.value as TaskStatus)
               }
-              className="h-9 rounded-md border border-[#2A2A2A] bg-[#121212] px-2 text-xs text-[#F5F5F5]"
+              className="h-9 border border-dashed border-hairline bg-canvas px-2 text-xs text-ink disabled:opacity-50"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -484,10 +607,11 @@ function TaskList({
             </select>
             <select
               value={task.priority}
+              disabled={!canWrite}
               onChange={(event) =>
                 onPriorityChange(task.id, event.target.value as TaskPriority)
               }
-              className="h-9 rounded-md border border-[#2A2A2A] bg-[#121212] px-2 text-xs text-[#F5F5F5]"
+              className="h-9 border border-dashed border-hairline bg-canvas px-2 text-xs text-ink disabled:opacity-50"
             >
               {PRIORITY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -498,21 +622,37 @@ function TaskList({
             <input
               type="date"
               value={isoToDateInput(task.dueAt)}
+              disabled={!canWrite}
               onChange={(event) =>
                 onDueChange(task.id, dateInputToIso(event.target.value))
               }
-              className="h-9 rounded-md border border-[#2A2A2A] bg-[#121212] px-2 text-xs text-[#F5F5F5]"
+              className="h-9 border border-dashed border-hairline bg-canvas px-2 text-xs text-ink disabled:opacity-50"
             />
-            <button
-              type="button"
-              onClick={() => onDelete(task.id)}
-              className="h-9 rounded-md border border-[#2A2A2A] px-3 text-xs text-[#A3A3A3] hover:border-[#D9A759] hover:text-[#D9A759]"
-            >
-              Delete
-            </button>
+            {canWrite ? (
+              <button
+                type="button"
+                onClick={() => onDelete(task.id)}
+                className="h-9 border border-dashed border-hairline px-3 text-xs text-muted hover:border-ink hover:text-ink"
+              >
+                Delete
+              </button>
+            ) : null}
           </div>
         </li>
       ))}
     </ul>
   );
+}
+
+function useTaskRefetchInterval(): number {
+  const client = useContext(RealtimeClientContext);
+  const [status, setStatus] = useState(client?.getStatus() ?? "idle");
+
+  useEffect(() => {
+    if (!client) return;
+    setStatus(client.getStatus());
+    return client.onStatus(setStatus);
+  }, [client]);
+
+  return status === "ready" ? 60_000 : 5_000;
 }

@@ -20,6 +20,14 @@ type Props = {
   children: ReactNode;
 };
 
+function navClass(active: boolean) {
+  return `block px-3 py-2 text-sm ${
+    active
+      ? "bg-ink text-canvas"
+      : "text-muted hover:bg-ink hover:text-canvas"
+  }`;
+}
+
 export function AppShell({ user, workspaces, children }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -27,6 +35,11 @@ export function AppShell({ user, workspaces, children }: Props) {
   const activeWorkspaceId = pathname.startsWith("/w/")
     ? pathname.split("/")[2]
     : null;
+  const isInbox = pathname.includes("/inbox") || pathname === "/inbox";
+  const isMembers = pathname.includes("/members");
+  const isActivity = pathname.includes("/activity");
+  const isBoard =
+    Boolean(activeWorkspaceId) && !isInbox && !isMembers && !isActivity;
 
   return (
     <div className="flex min-h-full">
@@ -34,36 +47,36 @@ export function AppShell({ user, workspaces, children }: Props) {
         <button
           type="button"
           aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          className="fixed inset-0 z-30 bg-ink/50 md:hidden"
           onClick={() => setOpen(false)}
         />
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[#2A2A2A] bg-[#121212] transition-transform md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-dashed border-hairline bg-canvas transition-transform md:static md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div className="border-b border-[#2A2A2A] px-5 py-5">
-          <p className="font-mono text-[11px] tracking-[0.2em] text-[#52D3FE]">
-            NOIRLY FLOW
+        <div className="border-b border-dashed border-hairline px-5 py-5">
+          <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase">
+            Noirly Flow
           </p>
           <button
             type="button"
             onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-            className="mt-3 flex w-full items-center justify-between rounded-lg border border-[#2A2A2A] bg-[#1E1E1E] px-3 py-2 text-left text-sm text-[#A3A3A3] hover:text-[#F5F5F5]"
+            className="mt-3 flex w-full items-center justify-between border border-dashed border-hairline px-3 py-2 text-left text-sm text-muted hover:bg-ink hover:text-canvas"
           >
             <span>Search</span>
-            <span className="font-mono text-[10px] text-[#737373]">⌘K</span>
+            <span className="font-mono text-[10px]">⌘K</span>
           </button>
         </div>
 
         <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
           <section>
-            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#737373]">
+            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
               Workspace
             </p>
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-px">
               {workspaces.map((workspace) => {
                 const href = `/w/${workspace.id}`;
                 const active = activeWorkspaceId === workspace.id;
@@ -72,14 +85,14 @@ export function AppShell({ user, workspaces, children }: Props) {
                     <Link
                       href={href}
                       onClick={() => setOpen(false)}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
+                      className={`flex items-center justify-between px-3 py-2 text-sm ${
                         active
-                          ? "bg-[#1E1E1E] text-[#F5F5F5]"
-                          : "text-[#A3A3A3] hover:bg-[#1E1E1E] hover:text-[#F5F5F5]"
+                          ? "bg-ink text-canvas"
+                          : "text-muted hover:bg-ink hover:text-canvas"
                       }`}
                     >
                       <span className="truncate">{workspace.name}</span>
-                      <span className="font-mono text-[10px] uppercase tracking-wide text-[#737373]">
+                      <span className="font-mono text-[10px] uppercase tracking-wide opacity-60">
                         {workspace.kind}
                       </span>
                     </Link>
@@ -91,10 +104,23 @@ export function AppShell({ user, workspaces, children }: Props) {
           </section>
 
           <section>
-            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#737373]">
+            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
               Navigate
             </p>
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-px">
+              <li>
+                <Link
+                  href={
+                    activeWorkspaceId
+                      ? `/w/${activeWorkspaceId}/inbox`
+                      : "/inbox"
+                  }
+                  onClick={() => setOpen(false)}
+                  className={navClass(isInbox)}
+                >
+                  Inbox
+                </Link>
+              </li>
               <li>
                 <Link
                   href={
@@ -105,11 +131,7 @@ export function AppShell({ user, workspaces, children }: Props) {
                         : "/"
                   }
                   onClick={() => setOpen(false)}
-                  className={`block rounded-lg px-3 py-2 text-sm ${
-                    pathname.startsWith("/w/")
-                      ? "bg-[#1E1E1E] text-[#F5F5F5]"
-                      : "text-[#A3A3A3] hover:bg-[#1E1E1E] hover:text-[#F5F5F5]"
-                  }`}
+                  className={navClass(isBoard)}
                 >
                   Board
                 </Link>
@@ -118,11 +140,7 @@ export function AppShell({ user, workspaces, children }: Props) {
                 <Link
                   href="/settings"
                   onClick={() => setOpen(false)}
-                  className={`block rounded-lg px-3 py-2 text-sm ${
-                    pathname.startsWith("/settings")
-                      ? "bg-[#1E1E1E] text-[#F5F5F5]"
-                      : "text-[#A3A3A3] hover:bg-[#1E1E1E] hover:text-[#F5F5F5]"
-                  }`}
+                  className={navClass(pathname.startsWith("/settings"))}
                 >
                   Settings
                 </Link>
@@ -130,13 +148,20 @@ export function AppShell({ user, workspaces, children }: Props) {
               {activeWorkspaceId ? (
                 <li>
                   <Link
+                    href={`/w/${activeWorkspaceId}/activity`}
+                    onClick={() => setOpen(false)}
+                    className={navClass(isActivity)}
+                  >
+                    Activity
+                  </Link>
+                </li>
+              ) : null}
+              {activeWorkspaceId ? (
+                <li>
+                  <Link
                     href={`/w/${activeWorkspaceId}/members`}
                     onClick={() => setOpen(false)}
-                    className={`block rounded-lg px-3 py-2 text-sm ${
-                      pathname.includes("/members")
-                        ? "bg-[#1E1E1E] text-[#F5F5F5]"
-                        : "text-[#A3A3A3] hover:bg-[#1E1E1E] hover:text-[#F5F5F5]"
-                    }`}
+                    className={navClass(pathname.includes("/members"))}
                   >
                     Members
                   </Link>
@@ -146,9 +171,9 @@ export function AppShell({ user, workspaces, children }: Props) {
           </section>
         </nav>
 
-        <div className="border-t border-[#2A2A2A] px-4 py-4">
-          <p className="truncate text-sm text-[#F5F5F5]">{user.displayName}</p>
-          <p className="truncate text-xs text-[#737373]">{user.email}</p>
+        <div className="border-t border-dashed border-hairline px-4 py-4">
+          <p className="truncate text-sm">{user.displayName}</p>
+          <p className="truncate font-mono text-[11px] text-muted">{user.email}</p>
           <div className="mt-3">
             <SignOutButton />
           </div>
@@ -156,21 +181,21 @@ export function AppShell({ user, workspaces, children }: Props) {
       </aside>
 
       <div className="flex min-h-full min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-[#2A2A2A] px-4 py-3 md:hidden">
+        <header className="flex items-center gap-3 border-b border-dashed border-hairline px-4 py-3 md:hidden">
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="rounded-md border border-[#2A2A2A] px-3 py-1.5 text-sm text-[#F5F5F5]"
+            className="border border-dashed border-hairline px-3 py-1.5 text-sm"
           >
             Menu
           </button>
-          <p className="font-mono text-[11px] tracking-[0.2em] text-[#52D3FE]">
-            NOIRLY FLOW
+          <p className="font-display text-sm font-bold tracking-[-0.04em] uppercase">
+            Flow
           </p>
           <button
             type="button"
             onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-            className="ml-auto rounded-md border border-[#2A2A2A] px-3 py-1.5 text-sm text-[#A3A3A3]"
+            className="ml-auto border border-dashed border-hairline px-3 py-1.5 font-mono text-sm text-muted"
           >
             ⌘K
           </button>

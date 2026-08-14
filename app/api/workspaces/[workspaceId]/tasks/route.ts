@@ -11,6 +11,7 @@ import {
 } from "@/src/server/api/schemas";
 import type { TaskPriority, TaskStatus } from "@/src/core/models/enums";
 import { dueRange } from "@/src/features/task/dates";
+import { publishRealtime } from "@/src/server/realtime/publish";
 
 type Params = { params: Promise<{ workspaceId: string }> };
 
@@ -21,6 +22,10 @@ export async function GET(request: Request, { params }: Params) {
     const url = new URL(request.url);
     const parsed = listTasksQuerySchema.safeParse({
       projectId: url.searchParams.get("projectId") ?? undefined,
+      inbox: url.searchParams.get("inbox") ?? undefined,
+      root: url.searchParams.get("root") ?? undefined,
+      parentTaskId: url.searchParams.get("parentTaskId") ?? undefined,
+      assigneeId: url.searchParams.get("assigneeId") ?? undefined,
       status: url.searchParams.get("status") ?? undefined,
       priority: url.searchParams.get("priority") ?? undefined,
       search: url.searchParams.get("search") ?? undefined,
@@ -30,11 +35,19 @@ export async function GET(request: Request, { params }: Params) {
       throw new ApiError(400, "invalid_request", "Invalid query");
     }
 
+    if (parsed.data.assigneeId) {
+      await assertObjectId(parsed.data.assigneeId, "assigneeId");
+    }
+
     const range = dueRange(parsed.data.due);
     const { sync } = await getSyncProvider();
     const tasks = await sync.listTasks({
       workspaceId,
-      projectId: parsed.data.projectId,
+      projectId: parsed.data.inbox ? null : parsed.data.projectId,
+      parentTaskId: parsed.data.root
+        ? null
+        : parsed.data.parentTaskId,
+      assigneeId: parsed.data.assigneeId,
       status: parsed.data.status
         ? (parsed.data.status.split(",") as TaskStatus[])
         : undefined,
@@ -64,6 +77,13 @@ export async function POST(request: Request, { params }: Params) {
       workspaceId,
       ...body.data,
     });
+    if (task.projectId) {
+      void publishRealtime({
+        channel: `project:${task.projectId}`,
+        event: "task.upsert",
+        data: { task, version: Date.parse(task.updatedAt) },
+      });
+    }
     return jsonOk({ task }, 201);
   } catch (error) {
     return jsonError(error);

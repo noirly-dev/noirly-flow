@@ -1,24 +1,62 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
-  --background: #121212;
-  --foreground: #f5f5f5;
+  color-scheme: light;
+  --canvas: #f5f5f5;
+  --ink: #000000;
+  --muted: rgb(0 0 0 / 0.45);
+  --panel: #000000;
+  --panel-ink: #f5f5f5;
+  --hairline: #000000;
+  --surface: #ececec;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-nf-bg: #121212;
-  --color-nf-surface: #1e1e1e;
-  --color-nf-border: #2a2a2a;
-  --color-nf-accent: #52d3fe;
-  --color-nf-warning: #d9a759;
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-panel: var(--panel);
+  --color-panel-ink: var(--panel-ink);
+  --color-hairline: var(--hairline);
+  --color-surface: var(--surface);
+  --font-sans: var(--font-hanken);
+  --font-display: var(--font-space);
+  --font-mono: var(--font-jetbrains);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: #000000;
+    --ink: #f5f5f5;
+    --muted: rgb(245 245 245 / 0.45);
+    --panel: #f5f5f5;
+    --panel-ink: #000000;
+    --hairline: #f5f5f5;
+    --surface: #0d0d0d;
+  }
+}
+
+html {
+  background: var(--canvas);
+  color: var(--ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.text-perforated {
+  -webkit-text-stroke: 1.25px currentColor;
+  color: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.matrix-numeral {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  line-height: 0.85;
 }

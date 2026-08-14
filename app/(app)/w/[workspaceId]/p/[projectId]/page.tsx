@@ -21,7 +21,7 @@ export default async function ProjectBoardPage({ params }: Params) {
 
     return (
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10">
-        <Suspense fallback={<p className="text-sm text-[#A3A3A3]">Loading board…</p>}>
+        <Suspense fallback={<p className="text-sm text-muted">Loading board…</p>}>
           <TaskWorkspace
             workspaceId={workspace.id}
             projectId={project.id}

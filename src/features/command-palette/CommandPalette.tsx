@@ -8,11 +8,12 @@ import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import { useUIStore } from "@/src/stores/ui-store";
 import type { Workspace } from "@/src/core/sync/types";
+import { can } from "@/src/core/permissions/can";
 
 const itemClass =
-  "flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm text-[#F5F5F5] data-[selected=true]:bg-[#121212]";
+  "flex cursor-pointer items-center justify-between px-3 py-2 text-sm text-ink data-[selected=true]:bg-ink data-[selected=true]:text-canvas";
 const headingClass =
-  "mb-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.16em] [&_[cmdk-group-heading]]:text-[#737373]";
+  "mb-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.16em] [&_[cmdk-group-heading]]:text-muted";
 
 type Props = {
   workspaces: Workspace[];
@@ -32,6 +33,7 @@ export function CommandPalette({ workspaces }: Props) {
   const activeWorkspaceId = pathname.startsWith("/w/")
     ? pathname.split("/")[2]
     : workspaces[0]?.id;
+  const onInbox = pathname.includes("/inbox");
   const activeProjectId = pathname.includes("/p/")
     ? pathname.split("/p/")[1]?.split("/")[0]
     : undefined;
@@ -79,6 +81,18 @@ export function CommandPalette({ workspaces }: Props) {
     }
   }, [open]);
 
+  const workspaceQuery = useQuery({
+    queryKey: activeWorkspaceId
+      ? qk.workspace(activeWorkspaceId)
+      : ["workspaces", "none"],
+    queryFn: () => api.getWorkspace(activeWorkspaceId!),
+    enabled: open && Boolean(activeWorkspaceId),
+  });
+  const canWrite = can(
+    workspaceQuery.data?.workspace.role ?? "member",
+    "task.write",
+  );
+
   const searchQuery = useQuery({
     queryKey: ["search", debounced],
     queryFn: () => api.search(debounced),
@@ -94,10 +108,12 @@ export function CommandPalette({ workspaces }: Props) {
   );
 
   async function createTask(title: string) {
-    if (!activeWorkspaceId || !title) return;
+    if (!activeWorkspaceId || !title || !canWrite) return;
     try {
-      const { projects } = await api.getWorkspace(activeWorkspaceId);
-      const projectId = activeProjectId || projects[0]?.id || null;
+      const { projects } = workspaceQuery.data ?? (await api.getWorkspace(activeWorkspaceId));
+      const projectId = onInbox
+        ? null
+        : activeProjectId || projects[0]?.id || null;
       await api.createTask(activeWorkspaceId, {
         title,
         projectId,
@@ -109,7 +125,7 @@ export function CommandPalette({ workspaces }: Props) {
       router.push(
         projectId
           ? `/w/${activeWorkspaceId}/p/${projectId}`
-          : `/w/${activeWorkspaceId}`,
+          : `/w/${activeWorkspaceId}/inbox`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create task");
@@ -117,7 +133,7 @@ export function CommandPalette({ workspaces }: Props) {
   }
 
   async function createProject(name: string) {
-    if (!activeWorkspaceId || !name) return;
+    if (!activeWorkspaceId || !name || !canWrite) return;
     try {
       const { project } = await api.createProject(activeWorkspaceId, { name });
       await queryClient.invalidateQueries({
@@ -141,21 +157,21 @@ export function CommandPalette({ workspaces }: Props) {
       open={open}
       onOpenChange={setOpen}
       label="Command palette"
-      overlayClassName="fixed inset-0 z-50 bg-black/60"
-      contentClassName="fixed left-1/2 top-[12vh] z-50 w-[min(36rem,calc(100%-2rem))] -translate-x-1/2 overflow-hidden rounded-xl border border-[#2A2A2A] bg-[#1E1E1E] shadow-2xl"
+      overlayClassName="fixed inset-0 z-50 bg-ink/50"
+      contentClassName="fixed left-1/2 top-[12vh] z-50 w-[min(36rem,calc(100%-2rem))] -translate-x-1/2 overflow-hidden border border-dashed border-hairline bg-surface"
     >
       <Command.Input
         value={query}
         onValueChange={setQuery}
         placeholder="Create a task, search, or jump…"
-        className="h-12 w-full border-b border-[#2A2A2A] bg-transparent px-4 text-sm text-[#F5F5F5] outline-none placeholder:text-[#737373]"
+        className="h-12 w-full border-b border-dashed border-hairline bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted"
       />
       <Command.List className="max-h-80 overflow-y-auto p-2">
-        <Command.Empty className="px-3 py-6 text-center text-sm text-[#737373]">
+        <Command.Empty className="px-3 py-6 text-center text-sm text-muted">
           No results.
         </Command.Empty>
 
-        {createTitle ? (
+        {createTitle && canWrite ? (
           <Command.Group heading="Actions" className={headingClass}>
             <Command.Item
               value={`create-task ${createTitle}`}
@@ -163,7 +179,7 @@ export function CommandPalette({ workspaces }: Props) {
               className={itemClass}
             >
               <span>Create task “{createTitle}”</span>
-              <span className="font-mono text-[10px] uppercase tracking-wide text-[#737373]">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
                 {workspaceName}
               </span>
             </Command.Item>
@@ -173,7 +189,7 @@ export function CommandPalette({ workspaces }: Props) {
               className={itemClass}
             >
               <span>Create project “{createTitle}”</span>
-              <span className="font-mono text-[10px] uppercase tracking-wide text-[#737373]">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
                 {workspaceName}
               </span>
             </Command.Item>
@@ -181,6 +197,24 @@ export function CommandPalette({ workspaces }: Props) {
         ) : null}
 
         <Command.Group heading="Navigate" className={headingClass}>
+          {activeWorkspaceId ? (
+            <Command.Item
+              value="inbox unfiled tasks"
+              onSelect={() => go(`/w/${activeWorkspaceId}/inbox`)}
+              className={itemClass}
+            >
+              Inbox
+            </Command.Item>
+          ) : null}
+          {activeWorkspaceId ? (
+            <Command.Item
+              value="activity audit log"
+              onSelect={() => go(`/w/${activeWorkspaceId}/activity`)}
+              className={itemClass}
+            >
+              Activity
+            </Command.Item>
+          ) : null}
           {workspaces.map((workspace) => (
             <Command.Item
               key={workspace.id}
@@ -189,7 +223,7 @@ export function CommandPalette({ workspaces }: Props) {
               className={itemClass}
             >
               <span>{workspace.name}</span>
-              <span className="font-mono text-[10px] uppercase tracking-wide text-[#737373]">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
                 {workspace.kind}
               </span>
             </Command.Item>
@@ -212,14 +246,14 @@ export function CommandPalette({ workspaces }: Props) {
                 onSelect={() =>
                   go(
                     task.projectId
-                      ? `/w/${task.workspaceId}/p/${task.projectId}`
-                      : `/w/${task.workspaceId}`,
+                      ? `/w/${task.workspaceId}/p/${task.projectId}?task=${task.id}`
+                      : `/w/${task.workspaceId}/inbox?task=${task.id}`,
                   )
                 }
                 className={itemClass}
               >
                 <span className="truncate">{task.title}</span>
-                <span className="font-mono text-[10px] uppercase tracking-wide text-[#737373]">
+                <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
                   {task.status.replaceAll("_", " ")}
                 </span>
               </Command.Item>
@@ -228,11 +262,11 @@ export function CommandPalette({ workspaces }: Props) {
         ) : null}
       </Command.List>
       {error ? (
-        <p className="border-t border-[#2A2A2A] px-4 py-2 text-xs text-[#D9A759]">
+        <p className="border-t border-dashed border-hairline px-4 py-2 text-xs text-ink">
           {error}
         </p>
       ) : (
-        <p className="border-t border-[#2A2A2A] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[#737373]">
+        <p className="border-t border-dashed border-hairline px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-muted">
           Esc to close · Enter to run
         </p>
       )}

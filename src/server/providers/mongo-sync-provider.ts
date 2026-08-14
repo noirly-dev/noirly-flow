@@ -1,13 +1,19 @@
-import { Types } from "mongoose";
+import { Types, type HydratedDocument } from "mongoose";
+import type { TaskDocument } from "@/src/server/models";
 import type {
   CreateProjectInput,
   CreateTaskInput,
   ListTasksQuery,
+  RecurrenceRule,
   ReorderTasksInput,
   SyncProvider,
   Task,
 } from "@/src/core/sync/types";
 import type { MemberRole, TaskStatus } from "@/src/core/models/enums";
+import {
+  asRecurrenceRule,
+  nextOccurrenceDueAt,
+} from "@/src/core/recurrence/next";
 import { withDb } from "@/src/server/db/mongodb";
 import {
   ActivityEvent,
@@ -44,6 +50,68 @@ function nextPosition(after?: number | null) {
     return after + 1000;
   }
   return Date.now();
+}
+
+async function spawnNextOccurrence(
+  source: HydratedDocument<TaskDocument>,
+  rule: RecurrenceRule,
+  actorId: string,
+) {
+  const dueAt = nextOccurrenceDueAt(source.dueAt, rule);
+  let columnId = null;
+  if (source.projectId) {
+    const column = await BoardColumn.findOne({
+      projectId: source.projectId,
+      statusMapped: "todo",
+    }).lean();
+    columnId = column?._id ?? null;
+  }
+
+  const last = await TaskModel.findOne({
+    workspaceId: source.workspaceId,
+    projectId: source.projectId ?? null,
+    columnId,
+    deletedAt: null,
+  })
+    .sort({ position: -1 })
+    .lean();
+
+  const next = await TaskModel.create({
+    workspaceId: source.workspaceId,
+    projectId: source.projectId ?? null,
+    columnId,
+    title: source.title,
+    description: source.description,
+    status: "todo",
+    priority: source.priority,
+    dueAt,
+    position: nextPosition(last?.position),
+    assigneeIds: source.assigneeIds ?? [],
+    tagIds: source.tagIds ?? [],
+    parentTaskId: source.parentTaskId ?? null,
+    recurrence: {
+      frequency: rule.frequency,
+      interval: rule.interval,
+    },
+    checklist: (source.checklist ?? []).map((item, index) => ({
+      title: item.title,
+      completed: false,
+      position: (index + 1) * 1000,
+    })),
+    createdById: oid(actorId),
+  });
+
+  await recordActivity({
+    workspaceId: next.workspaceId,
+    projectId: next.projectId,
+    taskId: next._id,
+    actorId,
+    verb: "task.created",
+    metadata: {
+      title: next.title,
+      fromRecurrence: source._id.toString(),
+    },
+  });
 }
 
 async function requireMembership(
@@ -267,6 +335,11 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
         } else if (query.projectId) {
           filter.projectId = oid(query.projectId);
         }
+        if (query.parentTaskId === null) {
+          filter.parentTaskId = null;
+        } else if (query.parentTaskId) {
+          filter.parentTaskId = oid(query.parentTaskId);
+        }
         if (query.status?.length) {
           filter.status = { $in: query.status };
         }
@@ -385,6 +458,8 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
           dueAt: task.dueAt?.toISOString() ?? null,
           assigneeIds: (task.assigneeIds ?? []).map((id) => id.toString()),
         };
+        const becomingDone =
+          patch.status === "done" && before.status !== "done";
 
         if (patch.assigneeIds !== undefined) {
           await assertAssigneesInWorkspace(
@@ -417,7 +492,22 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
             : null;
         }
         if (patch.projectId !== undefined) {
-          task.projectId = patch.projectId ? oid(patch.projectId) : null;
+          const nextProjectId = patch.projectId ? oid(patch.projectId) : null;
+          const projectChanged =
+            (task.projectId?.toString() ?? null) !==
+            (nextProjectId?.toString() ?? null);
+          task.projectId = nextProjectId;
+          if (projectChanged && patch.columnId === undefined) {
+            if (!nextProjectId) {
+              task.columnId = null;
+            } else {
+              const column = await BoardColumn.findOne({
+                projectId: nextProjectId,
+                statusMapped: task.status,
+              }).lean();
+              task.columnId = column?._id ?? null;
+            }
+          }
         }
         if (patch.columnId !== undefined) {
           task.columnId = patch.columnId ? oid(patch.columnId) : null;
@@ -468,7 +558,18 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
           );
         }
 
+        const spawnRule = becomingDone
+          ? asRecurrenceRule(task.recurrence)
+          : null;
+        if (spawnRule) {
+          task.recurrence = null;
+        }
+
         await task.save();
+
+        if (spawnRule) {
+          await spawnNextOccurrence(task, spawnRule, userId);
+        }
 
         const afterAssignees = (task.assigneeIds ?? []).map((id) =>
           id.toString(),
@@ -557,6 +658,12 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
           if (!task || task.deletedAt) continue;
           if (task.projectId?.toString() !== input.projectId) continue;
 
+          const becomingDone =
+            move.status === "done" && task.status !== "done";
+          const spawnRule = becomingDone
+            ? asRecurrenceRule(task.recurrence)
+            : null;
+
           task.columnId = move.columnId ? oid(move.columnId) : null;
           task.position = move.position;
           if (move.status) {
@@ -568,7 +675,13 @@ export function createMongoSyncProvider(ctx: ProviderContext): SyncProvider {
               task.completedAt = null;
             }
           }
+          if (spawnRule) {
+            task.recurrence = null;
+          }
           await task.save();
+          if (spawnRule) {
+            await spawnNextOccurrence(task, spawnRule, userId);
+          }
           updated.push(mapTask(task));
         }
         return updated;

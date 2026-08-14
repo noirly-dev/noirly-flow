@@ -107,6 +107,8 @@ export type ActivityEvent = {
 export type ListTasksQuery = {
   workspaceId: string;
   projectId?: string | null;
+  /** `null` = top-level only; string = children of that parent; omit = any. */
+  parentTaskId?: string | null;
   status?: TaskStatus[];
   priority?: TaskPriority[];
   tagIds?: string[];

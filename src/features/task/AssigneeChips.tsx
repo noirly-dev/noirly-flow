@@ -22,7 +22,7 @@ export function AssigneeChips({
           <span
             key={id}
             title={name}
-            className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#2A2A2A] px-1.5 font-mono text-[10px] text-[#F5F5F5]"
+            className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface px-1.5 font-mono text-[10px] text-ink"
           >
             {initials(name)}
           </span>

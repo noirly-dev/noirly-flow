@@ -14,11 +14,13 @@ export default async function MembersPage({ params }: Params) {
     return (
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
         <div>
-          <p className="font-mono text-xs tracking-[0.2em] text-[#52D3FE]">TEAM</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted">
+            Team
+          </p>
+          <h1 className="text-perforated mt-2 font-display text-5xl font-bold tracking-[-0.05em] uppercase">
             {workspace.name} members
           </h1>
-          <p className="mt-2 text-sm text-[#A3A3A3]">
+          <p className="mt-2 text-sm text-muted">
             Roles: owner, admin, member, viewer. Viewers cannot edit tasks.
           </p>
         </div>

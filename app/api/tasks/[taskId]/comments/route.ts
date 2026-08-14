@@ -6,6 +6,7 @@ import {
   jsonOk,
 } from "@/src/server/api/http";
 import { createCommentBodySchema } from "@/src/server/api/schemas";
+import { publishRealtime } from "@/src/server/realtime/publish";
 
 type Params = { params: Promise<{ taskId: string }> };
 
@@ -34,6 +35,14 @@ export async function POST(request: Request, { params }: Params) {
       taskId,
       body: body.data.body,
     });
+    const task = await sync.getTask(taskId);
+    if (task.projectId) {
+      void publishRealtime({
+        channel: `project:${task.projectId}`,
+        event: "comment.created",
+        data: { taskId, comment },
+      });
+    }
     return jsonOk({ comment }, 201);
   } catch (error) {
     return jsonError(error);

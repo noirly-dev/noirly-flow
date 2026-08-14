@@ -38,6 +38,7 @@ type Props = {
   tasks: Task[];
   columns: BoardColumn[] | undefined;
   members: WorkspaceMember[];
+  canWrite?: boolean;
   onReorder: (
     moves: Array<{
       taskId: string;
@@ -55,6 +56,7 @@ export function TaskBoard({
   tasks,
   columns,
   members,
+  canWrite = true,
   onReorder,
   onDelete,
   onOpenTask,
@@ -80,10 +82,12 @@ export function TaskBoard({
     : null;
 
   function handleDragStart(event: DragStartEvent) {
+    if (!canWrite) return;
     setActiveId(String(event.active.id));
   }
 
   function handleDragOver(event: DragOverEvent) {
+    if (!canWrite) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -104,6 +108,7 @@ export function TaskBoard({
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     setActiveId(null);
+    if (!canWrite) return;
     if (!over) {
       setGroups(groupTasksByColumn(tasks, boardColumns));
       return;
@@ -168,6 +173,7 @@ export function TaskBoard({
             title={column.name}
             tasks={groups[column.id] ?? []}
             members={members}
+            canWrite={canWrite}
             onDelete={onDelete}
             onOpenTask={onOpenTask}
           />
@@ -175,8 +181,8 @@ export function TaskBoard({
       </div>
       <DragOverlay>
         {activeTask ? (
-          <div className="rounded-lg border border-[#52D3FE] bg-[#121212] p-3 shadow-lg">
-            <p className="text-sm text-[#F5F5F5]">{activeTask.title}</p>
+          <div className="border border-dashed border-hairline bg-canvas p-3">
+            <p className="text-sm text-ink">{activeTask.title}</p>
           </div>
         ) : null}
       </DragOverlay>
@@ -189,6 +195,7 @@ function BoardColumnDroppable({
   title,
   tasks,
   members,
+  canWrite,
   onDelete,
   onOpenTask,
 }: {
@@ -196,22 +203,26 @@ function BoardColumnDroppable({
   title: string;
   tasks: Task[];
   members: WorkspaceMember[];
+  canWrite: boolean;
   onDelete: (taskId: string) => void;
   onOpenTask: (taskId: string) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: columnId });
+  const { setNodeRef, isOver } = useDroppable({
+    id: columnId,
+    disabled: !canWrite,
+  });
   const ids = tasks.map((task) => task.id);
 
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl border bg-[#1E1E1E] p-3 transition-colors ${
-        isOver ? "border-[#52D3FE]" : "border-[#2A2A2A]"
+      className={`border bg-surface p-3 transition-colors ${
+        isOver ? "border-ink" : "border-dashed border-hairline"
       }`}
     >
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-[#F5F5F5]">{title}</h3>
-        <span className="font-mono text-xs text-[#737373]">{tasks.length}</span>
+        <h3 className="text-sm font-medium text-ink">{title}</h3>
+        <span className="font-mono text-xs text-muted">{tasks.length}</span>
       </div>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <ul className="flex min-h-24 flex-col gap-2">
@@ -220,13 +231,14 @@ function BoardColumnDroppable({
               key={task.id}
               task={task}
               members={members}
+              canWrite={canWrite}
               onDelete={onDelete}
               onOpenTask={onOpenTask}
             />
           ))}
           {tasks.length === 0 ? (
-            <li className="px-1 py-6 text-center text-xs text-[#737373]">
-              Drop tasks here
+            <li className="px-1 py-6 text-center text-xs text-muted">
+              {canWrite ? "Drop tasks here" : "No tasks"}
             </li>
           ) : null}
         </ul>
@@ -238,11 +250,13 @@ function BoardColumnDroppable({
 function SortableTaskCard({
   task,
   members,
+  canWrite,
   onDelete,
   onOpenTask,
 }: {
   task: Task;
   members: WorkspaceMember[];
+  canWrite: boolean;
   onDelete: (taskId: string) => void;
   onOpenTask: (taskId: string) => void;
 }) {
@@ -253,7 +267,7 @@ function SortableTaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: task.id, disabled: !canWrite });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -264,28 +278,30 @@ function SortableTaskCard({
     <li
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg border border-[#2A2A2A] bg-[#121212] p-3 ${
+      className={`border border-dashed border-hairline bg-canvas p-3 ${
         isDragging ? "opacity-40" : ""
       }`}
     >
       <div className="flex items-start gap-2">
-        <button
-          type="button"
-          aria-label="Drag task"
-          className="mt-0.5 cursor-grab touch-none px-1 text-[#737373] active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
-        >
-          ⋮⋮
-        </button>
+        {canWrite ? (
+          <button
+            type="button"
+            aria-label="Drag task"
+            className="mt-0.5 cursor-grab touch-none px-1 text-muted active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            ⋮⋮
+          </button>
+        ) : null}
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
           onClick={() => onOpenTask(task.id)}
         >
-          <p className="text-sm text-[#F5F5F5]">{task.title}</p>
+          <p className="text-sm text-ink">{task.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="font-mono text-[11px] uppercase tracking-wide text-[#737373]">
+            <p className="font-mono text-[11px] uppercase tracking-wide text-muted">
               {task.priority === "none" ? "no priority" : task.priority}
             </p>
             <TaskDueBadge dueAt={task.dueAt} />
@@ -293,13 +309,15 @@ function SortableTaskCard({
           </div>
         </button>
       </div>
-      <button
-        type="button"
-        onClick={() => onDelete(task.id)}
-        className="mt-2 rounded border border-[#2A2A2A] px-2 py-1 text-[11px] text-[#A3A3A3] hover:border-[#D9A759] hover:text-[#D9A759]"
-      >
-        Delete
-      </button>
+      {canWrite ? (
+        <button
+          type="button"
+          onClick={() => onDelete(task.id)}
+          className="mt-2 border border-dashed border-hairline px-2 py-1 text-[11px] text-muted hover:border-ink hover:text-ink"
+        >
+          Delete
+        </button>
+      ) : null}
     </li>
   );
 }

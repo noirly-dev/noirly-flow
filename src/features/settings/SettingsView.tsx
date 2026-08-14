@@ -94,7 +94,7 @@ export function SettingsView({
           </div>
           {identityHome ? (
             <a
-              href={identityHome}
+              href={`${identityHome}/account`}
               target="_blank"
               rel="noreferrer"
               className="font-mono text-[11px] uppercase tracking-wide text-muted hover:text-ink"
@@ -114,18 +114,9 @@ export function SettingsView({
           </div>
         </dl>
         <p className="mt-3 text-xs text-muted">
-          Password and Google login are managed in Identity.
-          {identityHome ? (
-            <>
-              {" "}
-              <a
-                href={`${identityHome}/forgot-password`}
-                className="underline decoration-dashed underline-offset-2 hover:text-ink"
-              >
-                Reset password
-              </a>
-            </>
-          ) : null}
+          Password, Google login, and account details are managed in Identity.
+          Open Identity uses your Identity session when you are already signed
+          in there.
         </p>
       </section>
 

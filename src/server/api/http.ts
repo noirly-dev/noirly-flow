@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Types } from "mongoose";
 import { auth } from "@/auth";
 import { ensureFlowAccount } from "@/src/server/auth/bootstrap";
@@ -12,14 +13,28 @@ export type FlowSessionContext = {
   displayName: string;
 };
 
-export async function requireFlowSession(): Promise<FlowSessionContext> {
+export const requireFlowSession = cache(async (): Promise<FlowSessionContext> => {
   const session = await auth();
   if (!session?.user?.id) {
     throw new ApiError(401, "unauthorized", "Sign in required");
   }
 
+  const identitySub = session.user.id;
+  const existing = await withDb(async () =>
+    FlowUser.findOne({ identitySub }).lean(),
+  );
+
+  if (existing) {
+    return {
+      identitySub: existing.identitySub,
+      userId: existing._id.toString(),
+      email: existing.email,
+      displayName: existing.displayName,
+    };
+  }
+
   const account = await ensureFlowAccount({
-    id: session.user.id,
+    id: identitySub,
     email: session.user.email,
     name: session.user.name,
     image: session.user.image,
@@ -31,15 +46,15 @@ export async function requireFlowSession(): Promise<FlowSessionContext> {
     email: account.user.email,
     displayName: account.user.displayName,
   };
-}
+});
 
-export async function getSyncProvider() {
+export const getSyncProvider = cache(async () => {
   const ctx = await requireFlowSession();
   return {
     ctx,
     sync: createMongoSyncProvider({ userId: ctx.userId }),
   };
-}
+});
 
 export class ApiError extends Error {
   constructor(

@@ -44,6 +44,9 @@ export async function connectMongo(): Promise<typeof mongoose> {
     const dbName = resolveFlowDbName(uri);
     cache.promise = mongoose.connect(uri, {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
+      maxPoolSize: 10,
       ...(dbName ? { dbName } : {}),
     });
   }

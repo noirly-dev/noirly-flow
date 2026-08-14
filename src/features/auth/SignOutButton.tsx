@@ -1,16 +1,35 @@
 "use client";
 
-import { signOutAction } from "@/src/features/auth/actions";
+import { useState } from "react";
+import { createPortal } from "react-dom";
+import { signOut } from "next-auth/react";
+import { FlowBusyScreen } from "@/src/components/FlowBusyScreen";
 
 export function SignOutButton() {
+  const [busy, setBusy] = useState(false);
+
+  async function onSignOut() {
+    setBusy(true);
+    try {
+      await signOut({ callbackUrl: "/login", redirect: true });
+    } catch {
+      window.location.assign("/login");
+    }
+  }
+
   return (
-    <form action={signOutAction}>
+    <>
+      {busy
+        ? createPortal(<FlowBusyScreen label="Signing out" />, document.body)
+        : null}
       <button
-        className="w-full border border-dashed border-hairline px-3 py-1.5 text-left text-sm text-muted hover:bg-ink hover:text-canvas"
-        type="submit"
+        className="w-full cursor-pointer border border-dashed border-hairline px-3 py-1.5 text-left text-sm text-muted hover:bg-ink hover:text-canvas"
+        type="button"
+        onClick={() => void onSignOut()}
+        disabled={busy}
       >
         Sign out
       </button>
-    </form>
+    </>
   );
 }

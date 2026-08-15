@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { NoirlyLoginButton } from "@/src/features/auth/NoirlyLoginButton";
 import { DotMatrixClock } from "@/src/components/DotMatrix";
 
@@ -18,9 +19,27 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="flex items-center justify-between border-b border-dashed border-hairline px-5 py-5 md:px-10">
-        <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase md:text-2xl">
-          Noirly Flow
-        </p>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/logo-light.png"
+            alt=""
+            width={44}
+            height={44}
+            className="h-11 w-11 border border-dashed border-hairline dark:hidden"
+            priority
+          />
+          <Image
+            src="/logo-dark.png"
+            alt=""
+            width={44}
+            height={44}
+            className="hidden h-11 w-11 border border-dashed border-hairline dark:block"
+            priority
+          />
+          <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase md:text-2xl">
+            Noirly Flow
+          </p>
+        </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="pointer-events-none hidden w-10 shrink-0 items-center justify-center border-r border-dashed border-hairline lg:flex">

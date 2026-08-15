@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { SignOutButton } from "@/src/features/auth/SignOutButton";
@@ -96,9 +97,27 @@ export function AppShell({ user, children }: Props) {
         }`}
       >
         <div className="border-b border-dashed border-hairline px-5 py-5">
-          <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase">
-            Noirly Flow
-          </p>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo-light.png"
+              alt=""
+              width={40}
+              height={40}
+              className="h-10 w-10 border border-dashed border-hairline dark:hidden"
+              priority
+            />
+            <Image
+              src="/logo-dark.png"
+              alt=""
+              width={40}
+              height={40}
+              className="hidden h-10 w-10 border border-dashed border-hairline dark:block"
+              priority
+            />
+            <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase">
+              Noirly Flow
+            </p>
+          </div>
           <button
             type="button"
             onClick={() =>
@@ -224,6 +243,20 @@ export function AppShell({ user, children }: Props) {
           >
             Menu
           </button>
+          <Image
+            src="/logo-light.png"
+            alt=""
+            width={28}
+            height={28}
+            className="h-7 w-7 dark:hidden"
+          />
+          <Image
+            src="/logo-dark.png"
+            alt=""
+            width={28}
+            height={28}
+            className="hidden h-7 w-7 dark:block"
+          />
           <p className="font-display text-sm font-bold tracking-[-0.04em] uppercase">
             Flow
           </p>

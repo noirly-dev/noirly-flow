@@ -21,6 +21,21 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Noirly Flow",
   description: "Task and project management for the Noirly ecosystem",
+  icons: {
+    icon: [
+      {
+        url: "/logo-dark.png",
+        type: "image/png",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        url: "/logo-light.png",
+        type: "image/png",
+        media: "(prefers-color-scheme: light)",
+      },
+    ],
+    apple: "/logo-dark.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

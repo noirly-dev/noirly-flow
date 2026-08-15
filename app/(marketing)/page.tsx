@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -60,9 +61,27 @@ export default async function LandingPage() {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="flex items-center justify-between gap-6 border-b border-dashed border-hairline px-5 py-5 md:px-10">
-        <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase md:text-2xl">
-          Noirly Flow
-        </p>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/logo-light.png"
+            alt=""
+            width={48}
+            height={48}
+            className="h-11 w-11 border border-dashed border-hairline dark:hidden md:h-12 md:w-12"
+            priority
+          />
+          <Image
+            src="/logo-dark.png"
+            alt=""
+            width={48}
+            height={48}
+            className="hidden h-11 w-11 border border-dashed border-hairline dark:block md:h-12 md:w-12"
+            priority
+          />
+          <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase md:text-2xl">
+            Noirly Flow
+          </p>
+        </div>
         <Link
           href="/login"
           className="font-mono text-[11px] font-semibold tracking-[0.16em] uppercase transition-colors hover:bg-ink hover:text-canvas"
@@ -80,9 +99,32 @@ export default async function LandingPage() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <section className="relative overflow-hidden px-5 py-12 md:px-12 md:py-20">
-            <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-muted">
-              Workspace 1.0
-            </p>
+            <div className="mb-8 flex items-center gap-5">
+              <Image
+                src="/logo-light.png"
+                alt=""
+                width={96}
+                height={96}
+                className="h-20 w-20 border border-dashed border-hairline dark:hidden md:h-24 md:w-24"
+                priority
+              />
+              <Image
+                src="/logo-dark.png"
+                alt=""
+                width={96}
+                height={96}
+                className="hidden h-20 w-20 border border-dashed border-hairline dark:block md:h-24 md:w-24"
+                priority
+              />
+              <div>
+                <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-muted">
+                  Workspace 1.0
+                </p>
+                <p className="mt-2 font-mono text-[10px] tracking-[0.14em] uppercase text-muted">
+                  Plan. Execute. Ship.
+                </p>
+              </div>
+            </div>
             <h1 className="text-perforated mt-4 max-w-[10ch] font-display text-[18vw] leading-[0.8] font-bold tracking-[-0.07em] uppercase md:text-[9rem]">
               Flow
             </h1>
@@ -107,6 +149,27 @@ export default async function LandingPage() {
             </div>
           </section>
 
+          <section className="relative border-t border-dashed border-hairline">
+            <div className="relative min-h-[200px] w-full bg-surface md:min-h-[280px]">
+              <Image
+                src="/feature-light.png"
+                alt="Noirly Flow"
+                fill
+                className="object-contain p-8 dark:hidden md:p-12"
+                sizes="100vw"
+                priority
+              />
+              <Image
+                src="/feature-dark.png"
+                alt="Noirly Flow"
+                fill
+                className="hidden object-contain p-8 dark:block md:p-12"
+                sizes="100vw"
+                priority
+              />
+            </div>
+          </section>
+
           <section className="grid gap-0 border-t border-dashed border-hairline md:grid-cols-2 xl:grid-cols-3">
             {features.map((item) => (
               <div
@@ -127,7 +190,23 @@ export default async function LandingPage() {
           </section>
 
           <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-dashed border-hairline px-5 py-6 font-mono text-[10px] tracking-[0.16em] uppercase text-muted md:px-12">
-            <span>Noirly Flow</span>
+            <span className="flex items-center gap-3">
+              <Image
+                src="/logo-light.png"
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7 dark:hidden"
+              />
+              <Image
+                src="/logo-dark.png"
+                alt=""
+                width={28}
+                height={28}
+                className="hidden h-7 w-7 dark:block"
+              />
+              Noirly Flow
+            </span>
             <span>Boards / Workspaces / Realtime</span>
           </footer>
         </div>

@@ -8,8 +8,17 @@ export const proxy = auth((request) => {
   const isLoginPopup =
     pathname === "/login/popup" || pathname === "/login/popup-complete";
   const isAuthApi = pathname.startsWith("/api/auth");
+  // API routes authenticate themselves (cookie or Bearer). Do not redirect mobile clients.
+  const isApi = pathname.startsWith("/api/");
 
-  if (!request.auth && !isLanding && !isLogin && !isLoginPopup && !isAuthApi) {
+  if (
+    !request.auth &&
+    !isLanding &&
+    !isLogin &&
+    !isLoginPopup &&
+    !isAuthApi &&
+    !isApi
+  ) {
     const login = new URL("/login", request.nextUrl.origin);
     if (pathname.startsWith("/invite/")) {
       login.searchParams.set("next", pathname);

@@ -1,7 +1,12 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { Types } from "mongoose";
 import { auth } from "@/auth";
 import { ensureFlowAccount } from "@/src/server/auth/bootstrap";
+import {
+  extractBearerToken,
+  fetchIdentityUserInfo,
+} from "@/src/server/auth/identity-userinfo";
 import { withDb } from "@/src/server/db/mongodb";
 import { FlowUser } from "@/src/server/models";
 import { createMongoSyncProvider } from "@/src/server/providers/mongo-sync-provider";
@@ -13,10 +18,49 @@ export type FlowSessionContext = {
   displayName: string;
 };
 
-export const requireFlowSession = cache(async (): Promise<FlowSessionContext> => {
+async function resolveFromBearer(
+  accessToken: string,
+): Promise<FlowSessionContext> {
+  let userInfo;
+  try {
+    userInfo = await fetchIdentityUserInfo(accessToken);
+  } catch {
+    throw new ApiError(401, "unauthorized", "Invalid or expired access token");
+  }
+
+  const identitySub = userInfo.sub;
+  const existing = await withDb(async () =>
+    FlowUser.findOne({ identitySub }).lean(),
+  );
+
+  if (existing) {
+    return {
+      identitySub: existing.identitySub,
+      userId: existing._id.toString(),
+      email: existing.email,
+      displayName: existing.displayName,
+    };
+  }
+
+  const account = await ensureFlowAccount({
+    id: identitySub,
+    email: userInfo.email ?? null,
+    name: userInfo.name ?? null,
+    image: userInfo.picture ?? null,
+  });
+
+  return {
+    identitySub: account.user.identitySub,
+    userId: account.user.id,
+    email: account.user.email,
+    displayName: account.user.displayName,
+  };
+}
+
+async function resolveFromCookieSession(): Promise<FlowSessionContext | null> {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new ApiError(401, "unauthorized", "Sign in required");
+    return null;
   }
 
   const identitySub = session.user.id;
@@ -46,6 +90,21 @@ export const requireFlowSession = cache(async (): Promise<FlowSessionContext> =>
     email: account.user.email,
     displayName: account.user.displayName,
   };
+}
+
+export const requireFlowSession = cache(async (): Promise<FlowSessionContext> => {
+  const headerStore = await headers();
+  const bearer = extractBearerToken(headerStore.get("authorization"));
+  if (bearer) {
+    return resolveFromBearer(bearer);
+  }
+
+  const fromCookie = await resolveFromCookieSession();
+  if (fromCookie) {
+    return fromCookie;
+  }
+
+  throw new ApiError(401, "unauthorized", "Sign in required");
 });
 
 export const getSyncProvider = cache(async () => {

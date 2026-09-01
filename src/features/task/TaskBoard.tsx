@@ -331,37 +331,41 @@ function SortableTaskCard({
         {canWrite ? (
           <span
             aria-hidden
-            className="mt-0.5 select-none px-1 text-[var(--muted-foreground)]"
+            className="inline-flex h-8 w-5 shrink-0 items-center justify-center select-none text-[var(--muted-foreground)]"
           >
             ⋮⋮
           </span>
         ) : null}
-        <button
-          type="button"
-          className="min-w-0 flex-1 cursor-pointer text-left"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onOpenTask(task.id)}
-        >
-          <p className="text-sm text-[var(--foreground)]">{task.title}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="font-mono text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">
-              {task.priority === "none" ? "no priority" : task.priority}
-            </p>
-            <TaskDueBadge dueAt={task.dueAt} />
-            <AssigneeChips assigneeIds={task.assigneeIds} members={members} />
-          </div>
-        </button>
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            className="w-full cursor-pointer text-left"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => onOpenTask(task.id)}
+          >
+            <p className="text-sm text-[var(--foreground)]">{task.title}</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">
+                {task.priority === "none" ? "no priority" : task.priority}
+              </p>
+              <TaskDueBadge dueAt={task.dueAt} />
+              <AssigneeChips assigneeIds={task.assigneeIds} members={members} />
+            </div>
+          </button>
+          {canWrite ? (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onDelete(task.id)}
+                className="inline-flex h-8 items-center rounded-lg border border-[var(--hairline)] px-3 text-xs text-[var(--muted-foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--foreground)]"
+              >
+                Delete
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
-      {canWrite ? (
-        <button
-          type="button"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => onDelete(task.id)}
-          className="mt-2 cursor-pointer border border-[var(--hairline)] px-2 py-1 text-[11px] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
-        >
-          Delete
-        </button>
-      ) : null}
     </li>
   );
 }

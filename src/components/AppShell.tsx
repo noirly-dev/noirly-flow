@@ -133,9 +133,12 @@ export function AppShell({ user, children }: Props) {
                       <li key={workspace.id}>
                         <Link href={href} className={workspaceLinkClass(active)}>
                           <span className="truncate">{workspace.name}</span>
-                          <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide opacity-60">
-                            {workspace.kind}
-                          </span>
+                          {workspace.kind.toLowerCase() !==
+                          workspace.name.toLowerCase() ? (
+                            <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide opacity-60">
+                              {workspace.kind}
+                            </span>
+                          ) : null}
                         </Link>
                       </li>
                     );

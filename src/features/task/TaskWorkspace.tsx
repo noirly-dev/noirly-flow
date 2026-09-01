@@ -52,6 +52,12 @@ const DUE_FILTERS: { value: DuePreset | ""; label: string }[] = [
   { value: "none", label: "No date" },
 ];
 
+const fieldClass =
+  "box-border h-10 min-h-10 shrink-0 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm leading-none text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]";
+
+const actionClass =
+  "inline-flex h-10 min-h-10 shrink-0 items-center justify-center rounded-xl px-3 text-sm leading-none transition-colors";
+
 type Props = {
   workspaceId: string;
   projectId: string | null;
@@ -465,7 +471,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
 
       {canWrite ? (
       <form
-        className="surface grain flex flex-col gap-3 rounded-[var(--r-lg)] border border-[var(--hairline)] p-4 shadow-[var(--elev-1)] lg:flex-row lg:items-center"
+        className="surface grain flex flex-wrap items-center gap-2 rounded-[var(--r-lg)] border border-[var(--hairline)] p-4 shadow-[var(--elev-1)]"
         onSubmit={(event) => {
           event.preventDefault();
           const nextTitle = title.trim();
@@ -481,12 +487,12 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Add a task…"
-          className="h-10 flex-1 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          className={`${fieldClass} min-w-[12rem] flex-1`}
         />
         <select
           value={priority}
           onChange={(event) => setPriority(event.target.value as TaskPriority)}
-          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className={`${fieldClass} cursor-pointer`}
         >
           {PRIORITY_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -498,12 +504,12 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           type="date"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
-          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className={fieldClass}
         />
         <button
           type="submit"
           disabled={!title.trim()}
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-ink)] disabled:opacity-50"
+          className={`${actionClass} bg-[var(--accent)] font-medium text-[var(--accent-ink)] disabled:opacity-50`}
         >
           Add
         </button>
@@ -514,19 +520,19 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
         </p>
       )}
 
-      <div className="surface grain flex flex-col gap-3 rounded-[var(--r-lg)] border border-[var(--hairline)] p-4 shadow-[var(--elev-1)] lg:flex-row lg:items-center">
+      <div className="surface grain flex flex-wrap items-center gap-2 rounded-[var(--r-lg)] border border-[var(--hairline)] p-4 shadow-[var(--elev-1)]">
         <input
           ref={searchInputRef}
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Search tasks… (/)"
-          className="h-10 flex-1 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          className={`${fieldClass} min-w-[12rem] flex-1`}
         />
         <button
           type="button"
           onClick={() => setAssignedToMe((value) => !value)}
           disabled={!meQuery.data?.user.id}
-          className={`inline-flex h-10 items-center rounded-xl px-3 text-sm disabled:opacity-50 ${
+          className={`${actionClass} disabled:opacity-50 ${
             assignedToMe
               ? "bg-[var(--accent-soft)] text-[var(--accent)]"
               : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
@@ -539,7 +545,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setStatusFilter(event.target.value as TaskStatus | "")
           }
-          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className={`${fieldClass} cursor-pointer`}
         >
           <option value="">Any status</option>
           {STATUS_OPTIONS.map((option) => (
@@ -553,7 +559,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setPriorityFilter(event.target.value as TaskPriority | "")
           }
-          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className={`${fieldClass} cursor-pointer`}
         >
           <option value="">Any priority</option>
           {PRIORITY_OPTIONS.map((option) => (
@@ -567,7 +573,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setDueFilter(event.target.value as DuePreset | "")
           }
-          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className={`${fieldClass} cursor-pointer`}
         >
           {DUE_FILTERS.map((option) => (
             <option key={option.value || "any"} value={option.value}>
@@ -586,7 +592,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
               setDueFilter("");
               setAssignedToMe(false);
             }}
-            className="inline-flex h-10 items-center rounded-xl border border-[var(--hairline)] px-3 text-sm text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
+            className={`${actionClass} border border-[var(--hairline)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]`}
           >
             Clear
           </button>

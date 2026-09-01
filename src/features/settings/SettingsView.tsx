@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Button, Input, Label, Textarea } from "@noirly-dev/ui";
+import { Button, Input, Label, PageContainer, PageHeader, Textarea } from "@noirly-dev/ui";
 import { api } from "@/src/lib/api-client";
 
 const TIMEZONES = [
@@ -71,19 +71,12 @@ export function SettingsView({
   const identityHome = identityUrl.replace(/\/$/, "");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-10">
-      <div>
-        <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-[var(--muted-foreground)]">
-          Account
-        </p>
-        <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">
-          Settings
-        </h1>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-          Sign-in details live in Noirly Identity. Optional Flow fields stay in
-          this product only.
-        </p>
-      </div>
+    <PageContainer size="sm" className="max-w-2xl">
+      <PageHeader
+        kicker="Account"
+        title="Settings"
+        lead="Sign-in details live in Noirly Identity. Optional Flow fields stay in this product only."
+      />
 
       <section className="border border-[var(--hairline)] bg-[var(--surface)] p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -205,6 +198,6 @@ export function SettingsView({
           </div>
         </form>
       </section>
-    </main>
+    </PageContainer>
   );
 }

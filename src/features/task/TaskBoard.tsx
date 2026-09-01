@@ -204,7 +204,7 @@ export function TaskBoard({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         {boardColumns.map((column) => (
           <BoardColumnDroppable
             key={column.id}
@@ -255,8 +255,8 @@ function BoardColumnDroppable({
   return (
     <div
       ref={setNodeRef}
-      className={`border bg-[var(--surface)] p-3 transition-colors ${
-        isOver ? "border-[var(--accent)]" : "border border-[var(--hairline)]"
+      className={`rounded-[var(--r-lg)] border bg-[var(--surface)] p-3 transition-colors ${
+        isOver ? "border-[var(--accent)]" : "border-[var(--hairline)]"
       }`}
     >
       <div className="mb-3 flex items-center justify-between">
@@ -320,7 +320,7 @@ function SortableTaskCard({
     <li
       ref={setNodeRef}
       style={style}
-      className={`border border-[var(--hairline)] bg-[var(--bg)] p-3 ${
+      className={`rounded-[var(--r-md)] border border-[var(--hairline)] bg-[var(--bg)] p-3 ${
         isDragging ? "opacity-40" : ""
       } ${canWrite && !task.id.startsWith("tmp-") ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
       {...(canWrite && !task.id.startsWith("tmp-")

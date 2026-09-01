@@ -406,31 +406,31 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
 
   return (
     <section className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-[var(--muted-foreground)]">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--muted-foreground)]">
             {headerName}
           </p>
-          <h2 className="mt-1 font-display text-4xl font-semibold tracking-tight md:text-5xl">
+          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight md:text-4xl">
             Tasks
           </h2>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             {openCount} open · {tasks.length} shown
             {!canWrite ? " · view only" : ""}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center">
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
           {projectId && process.env.NEXT_PUBLIC_REALTIME_WS_URL ? (
             <ProjectRealtime workspaceId={workspaceId} projectId={projectId} />
           ) : null}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setView("list")}
-              className={`px-3 py-1.5 text-sm ${
+              className={`rounded-xl px-3 py-2 text-sm transition-colors ${
                 view === "list"
                   ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                  : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                  : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
               }`}
             >
               List
@@ -439,10 +439,10 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
               <button
                 type="button"
                 onClick={() => setView("board")}
-                className={`px-3 py-1.5 text-sm ${
+                className={`rounded-xl px-3 py-2 text-sm transition-colors ${
                   view === "board"
                     ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                    : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
                 }`}
               >
                 Board
@@ -451,10 +451,10 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
             <button
               type="button"
               onClick={() => setView("calendar")}
-              className={`px-3 py-1.5 text-sm ${
+              className={`rounded-xl px-3 py-2 text-sm transition-colors ${
                 view === "calendar"
                   ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                  : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                  : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
               }`}
             >
               Calendar
@@ -465,7 +465,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
 
       {canWrite ? (
       <form
-        className="flex flex-col gap-3 border border-[var(--hairline)] bg-[var(--surface)] p-4 lg:flex-row lg:items-center"
+        className="surface grain flex flex-col gap-3 rounded-[var(--r-lg)] border border-[var(--hairline)] p-4 shadow-[var(--elev-1)] lg:flex-row lg:items-center"
         onSubmit={(event) => {
           event.preventDefault();
           const nextTitle = title.trim();
@@ -481,12 +481,12 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Add a task…"
-          className="h-11 flex-1 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--accent)]"
+          className="h-10 flex-1 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         />
         <select
           value={priority}
           onChange={(event) => setPriority(event.target.value as TaskPriority)}
-          className="h-11 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           {PRIORITY_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -498,38 +498,38 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           type="date"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
-          className="h-11 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         />
         <button
           type="submit"
           disabled={!title.trim()}
-          className="h-11 bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-sm font-medium text-[var(--accent-ink)] disabled:opacity-50"
         >
           Add
         </button>
       </form>
       ) : (
-        <p className="border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+        <p className="rounded-[var(--r-lg)] border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
           You have view-only access. Ask an admin if you need to edit tasks.
         </p>
       )}
 
-      <div className="flex flex-col gap-3 border border-[var(--hairline)] bg-[var(--surface)] p-4 lg:flex-row lg:items-center">
+      <div className="surface grain flex flex-col gap-3 rounded-[var(--r-lg)] border border-[var(--hairline)] p-4 shadow-[var(--elev-1)] lg:flex-row lg:items-center">
         <input
           ref={searchInputRef}
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Search tasks… (/)"
-          className="h-10 flex-1 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--accent)]"
+          className="h-10 flex-1 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         />
         <button
           type="button"
           onClick={() => setAssignedToMe((value) => !value)}
           disabled={!meQuery.data?.user.id}
-          className={`h-10 px-3 text-sm disabled:opacity-50 ${
+          className={`inline-flex h-10 items-center rounded-xl px-3 text-sm disabled:opacity-50 ${
             assignedToMe
               ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-              : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
           }`}
         >
           Assigned to me
@@ -539,7 +539,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setStatusFilter(event.target.value as TaskStatus | "")
           }
-          className="h-10 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">Any status</option>
           {STATUS_OPTIONS.map((option) => (
@@ -553,7 +553,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setPriorityFilter(event.target.value as TaskPriority | "")
           }
-          className="h-10 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">Any priority</option>
           {PRIORITY_OPTIONS.map((option) => (
@@ -567,7 +567,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setDueFilter(event.target.value as DuePreset | "")
           }
-          className="h-10 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
+          className="h-10 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           {DUE_FILTERS.map((option) => (
             <option key={option.value || "any"} value={option.value}>
@@ -586,7 +586,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
               setDueFilter("");
               setAssignedToMe(false);
             }}
-            className="h-10 border border-[var(--hairline)] px-3 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            className="inline-flex h-10 items-center rounded-xl border border-[var(--hairline)] px-3 text-sm text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
           >
             Clear
           </button>

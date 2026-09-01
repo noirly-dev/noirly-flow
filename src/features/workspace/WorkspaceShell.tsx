@@ -34,7 +34,7 @@ export function WorkspaceShell({
   if (workspaceQuery.isError) {
     return (
       <PageContainer size="sm">
-        <h1 className="font-display text-3xl font-bold tracking-[-0.04em] uppercase">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
           Workspace unavailable
         </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
@@ -47,11 +47,13 @@ export function WorkspaceShell({
 
   return (
     <WorkspaceRoleProvider role={role}>
-      <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
-        <div className="border-b border-[var(--hairline)] p-3 lg:sticky lg:top-0 lg:flex lg:h-full lg:w-52 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
-          <ProjectNav workspaceId={workspaceId} />
-        </div>
-        <div className="min-h-0 min-w-0 flex-1">{children}</div>
+      <div className="flex h-full min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="shrink-0 border-b border-[var(--hairline)] bg-[var(--surface-2)]/40 lg:w-56 lg:border-b-0 lg:border-r">
+          <div className="px-4 py-4 sm:px-6 lg:max-h-full lg:overflow-y-auto lg:py-5">
+            <ProjectNav workspaceId={workspaceId} />
+          </div>
+        </aside>
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</div>
       </div>
     </WorkspaceRoleProvider>
   );

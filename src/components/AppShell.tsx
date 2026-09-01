@@ -1,13 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, type ReactNode } from "react";
 import {
   Activity,
-  Inbox,
-  Kanban,
   Search,
   Settings,
   Users,
@@ -15,7 +12,6 @@ import {
 import {
   AppShell as UIShell,
   SidebarBrand,
-  cn,
   type AppNavItem,
 } from "@noirly-dev/ui";
 import { SignOutButton } from "@/src/features/auth/SignOutButton";
@@ -37,12 +33,12 @@ type Props = {
 };
 
 function workspaceLinkClass(active: boolean) {
-  return cn(
-    "flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors",
+  return [
+    "flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm transition-colors",
     active
       ? "bg-[var(--accent-soft)] text-[var(--accent)]"
       : "text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
-  );
+  ].join(" ");
 }
 
 export function AppShell({ user, children }: Props) {
@@ -71,37 +67,7 @@ export function AppShell({ user, children }: Props) {
     }
   }, [pathWorkspaceId, lastWorkspaceId, setLastWorkspaceId]);
 
-  const currentProjectId = path.includes("/p/")
-    ? path.split("/p/")[1]?.split("/")[0]
-    : null;
-
-  const workspaceDetailQuery = useQuery({
-    queryKey: qk.workspace(workspaceId ?? ""),
-    queryFn: () => api.getWorkspace(workspaceId!),
-    enabled: Boolean(workspaceId),
-    staleTime: 60_000,
-  });
-  const boardProjectId =
-    currentProjectId ?? workspaceDetailQuery.data?.projects[0]?.id;
-  const boardHref = workspaceId
-    ? boardProjectId
-      ? `/w/${workspaceId}/p/${boardProjectId}`
-      : `/w/${workspaceId}`
-    : "/";
-
   const items: AppNavItem[] = [
-    {
-      href: workspaceId ? `/w/${workspaceId}/inbox` : "/inbox",
-      label: "Inbox",
-      icon: Inbox,
-      match: "prefix",
-    },
-    {
-      href: boardHref,
-      label: "Board",
-      icon: Kanban,
-      match: boardProjectId ? "prefix" : "exact",
-    },
     {
       href: "/settings",
       label: "Settings",
@@ -129,18 +95,14 @@ export function AppShell({ user, children }: Props) {
   return (
     <>
       <UIShell
+        contentClassName="min-h-0 flex-1 overflow-hidden"
         sidebar={{
           brand: (
             <SidebarBrand
               logo={
-                <Image
-                  src="/logo-dark.png"
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="h-8 w-8"
-                  priority
-                />
+                <span className="font-mono text-xs font-bold tracking-[0.08em]">
+                  NF
+                </span>
               }
               title="Noirly Flow"
               subtitle="Workspace"
@@ -171,7 +133,7 @@ export function AppShell({ user, children }: Props) {
                       <li key={workspace.id}>
                         <Link href={href} className={workspaceLinkClass(active)}>
                           <span className="truncate">{workspace.name}</span>
-                          <span className="font-mono text-[10px] uppercase tracking-wide opacity-60">
+                          <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide opacity-60">
                             {workspace.kind}
                           </span>
                         </Link>
@@ -204,14 +166,15 @@ export function AppShell({ user, children }: Props) {
         header={{
           brand: (
             <p className="font-display text-sm font-semibold tracking-tight">
-              Flow
+              Noirly Flow
             </p>
           ),
           actions: (
             <button
               type="button"
               onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-              className="rounded-lg border border-[var(--hairline)] px-3 py-1.5 font-mono text-sm text-[var(--muted-foreground)]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--hairline)] font-mono text-sm text-[var(--muted-foreground)]"
+              aria-label="Open search"
             >
               ⌘K
             </button>

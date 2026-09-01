@@ -220,8 +220,8 @@ export function TaskBoard({
       </div>
       <DragOverlay>
         {activeTask ? (
-          <div className="border border-dashed border-hairline bg-canvas p-3">
-            <p className="text-sm text-ink">{activeTask.title}</p>
+          <div className="border border-[var(--hairline)] bg-[var(--bg)] p-3">
+            <p className="text-sm text-[var(--foreground)]">{activeTask.title}</p>
           </div>
         ) : null}
       </DragOverlay>
@@ -255,13 +255,13 @@ function BoardColumnDroppable({
   return (
     <div
       ref={setNodeRef}
-      className={`border bg-surface p-3 transition-colors ${
-        isOver ? "border-ink" : "border-dashed border-hairline"
+      className={`border bg-[var(--surface)] p-3 transition-colors ${
+        isOver ? "border-[var(--accent)]" : "border border-[var(--hairline)]"
       }`}
     >
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-ink">{title}</h3>
-        <span className="font-mono text-xs text-muted">{tasks.length}</span>
+        <h3 className="text-sm font-medium text-[var(--foreground)]">{title}</h3>
+        <span className="font-mono text-xs text-[var(--muted-foreground)]">{tasks.length}</span>
       </div>
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <ul className="flex min-h-24 flex-col gap-2">
@@ -276,7 +276,7 @@ function BoardColumnDroppable({
             />
           ))}
           {tasks.length === 0 ? (
-            <li className="px-1 py-6 text-center text-xs text-muted">
+            <li className="px-1 py-6 text-center text-xs text-[var(--muted-foreground)]">
               {canWrite ? "Drop tasks here" : "No tasks"}
             </li>
           ) : null}
@@ -320,7 +320,7 @@ function SortableTaskCard({
     <li
       ref={setNodeRef}
       style={style}
-      className={`border border-dashed border-hairline bg-canvas p-3 ${
+      className={`border border-[var(--hairline)] bg-[var(--bg)] p-3 ${
         isDragging ? "opacity-40" : ""
       } ${canWrite && !task.id.startsWith("tmp-") ? "cursor-grab touch-none active:cursor-grabbing" : ""}`}
       {...(canWrite && !task.id.startsWith("tmp-")
@@ -331,7 +331,7 @@ function SortableTaskCard({
         {canWrite ? (
           <span
             aria-hidden
-            className="mt-0.5 select-none px-1 text-muted"
+            className="mt-0.5 select-none px-1 text-[var(--muted-foreground)]"
           >
             ⋮⋮
           </span>
@@ -342,9 +342,9 @@ function SortableTaskCard({
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onOpenTask(task.id)}
         >
-          <p className="text-sm text-ink">{task.title}</p>
+          <p className="text-sm text-[var(--foreground)]">{task.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="font-mono text-[11px] uppercase tracking-wide text-muted">
+            <p className="font-mono text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">
               {task.priority === "none" ? "no priority" : task.priority}
             </p>
             <TaskDueBadge dueAt={task.dueAt} />
@@ -357,7 +357,7 @@ function SortableTaskCard({
           type="button"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onDelete(task.id)}
-          className="mt-2 cursor-pointer border border-dashed border-hairline px-2 py-1 text-[11px] text-muted hover:border-ink hover:text-ink"
+          className="mt-2 cursor-pointer border border-[var(--hairline)] px-2 py-1 text-[11px] text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
         >
           Delete
         </button>

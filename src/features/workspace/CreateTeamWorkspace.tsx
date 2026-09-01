@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button, Input } from "@noirly-dev/ui";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import { useUIStore } from "@/src/stores/ui-store";
@@ -27,13 +28,14 @@ export function CreateTeamWorkspace() {
 
   if (!open) {
     return (
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        className="mt-2 w-full justify-start"
         onClick={() => setOpen(true)}
-        className="mt-2 w-full px-3 py-2 text-left text-sm text-ink hover:bg-ink hover:text-canvas"
       >
         New team workspace
-      </button>
+      </Button>
     );
   }
 
@@ -46,30 +48,32 @@ export function CreateTeamWorkspace() {
         createMutation.mutate();
       }}
     >
-      <input
+      <Input
         value={name}
         onChange={(event) => setName(event.target.value)}
         placeholder="Team name"
-        className="h-8 border border-dashed border-hairline bg-surface px-2 text-xs text-ink outline-none"
+        className="h-8 text-xs"
       />
       <div className="flex gap-2">
-        <button
+        <Button
           type="submit"
+          size="sm"
           disabled={createMutation.isPending || !name.trim()}
-          className="h-8 flex-1 bg-ink text-xs font-semibold text-canvas disabled:opacity-50"
+          className="flex-1"
         >
           {createMutation.isPending ? "Saving…" : "Create"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          size="sm"
+          variant="secondary"
           onClick={() => setOpen(false)}
-          className="h-8 border border-dashed border-hairline px-2 text-xs text-muted"
         >
           Cancel
-        </button>
+        </Button>
       </div>
       {createMutation.isError ? (
-        <p className="text-xs text-ink">
+        <p className="text-xs text-[var(--foreground)]">
           {(createMutation.error as Error).message}
         </p>
       ) : null}

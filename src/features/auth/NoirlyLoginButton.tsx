@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Button } from "@noirly-dev/ui";
 import { FlowBusyScreen } from "@/src/components/FlowBusyScreen";
 import { ProductGoogleOneTap } from "@/src/features/auth/GoogleOneTap";
 
@@ -179,16 +180,19 @@ export function NoirlyLoginButton({ redirectTo = "/" }: { redirectTo?: string })
       {mounted ? (
         <ProductGoogleOneTap identityUrl={IDENTITY_URL} onCredential={startGoogleOneTap} />
       ) : null}
-      <button
-        className="flex h-12 w-full cursor-pointer items-center justify-center bg-panel-ink px-5 font-mono text-[11px] font-semibold tracking-[0.16em] text-panel uppercase transition-colors hover:bg-transparent hover:text-panel-ink hover:outline hover:outline-1 hover:outline-dashed hover:outline-panel-ink disabled:cursor-not-allowed disabled:opacity-50"
+      <Button
         type="button"
+        size="lg"
+        className="w-full font-mono text-[11px] tracking-[0.16em] uppercase"
         onClick={openIdentityPopup}
         disabled={waiting}
       >
         {signedIn ? "Signing in…" : waiting ? "Waiting for Identity…" : "Noirly Login"}
-      </button>
+      </Button>
       {error ? (
-        <p className="font-mono text-[11px] tracking-[0.08em] text-panel-ink/70">{error}</p>
+        <p className="font-mono text-[11px] tracking-[0.08em] text-[var(--muted-foreground)]">
+          {error}
+        </p>
       ) : null}
     </div>
   );

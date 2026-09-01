@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Button } from "@noirly-dev/ui";
 import type { Task } from "@/src/core/sync/types";
 import { isoToDateInput } from "@/src/features/task/dates";
 
@@ -73,41 +74,43 @@ export function TaskCalendar({ tasks, onOpenTask }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() =>
             setCursor((current) => {
               const date = new Date(current.year, current.month - 1, 1);
               return { year: date.getFullYear(), month: date.getMonth() };
             })
           }
-          className="border border-dashed border-hairline px-3 py-1.5 text-sm text-muted hover:text-ink"
         >
           Prev
-        </button>
-        <p className="text-sm font-medium text-ink">
+        </Button>
+        <p className="text-sm font-medium text-[var(--foreground)]">
           {monthLabel(cursor.year, cursor.month)}
         </p>
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() =>
             setCursor((current) => {
               const date = new Date(current.year, current.month + 1, 1);
               return { year: date.getFullYear(), month: date.getMonth() };
             })
           }
-          className="border border-dashed border-hairline px-3 py-1.5 text-sm text-muted hover:text-ink"
         >
           Next
-        </button>
+        </Button>
       </div>
 
-      <div className="overflow-x-auto border border-dashed border-hairline bg-surface">
-        <div className="grid min-w-[42rem] grid-cols-7 border-b border-dashed border-hairline">
+      <div className="overflow-x-auto border border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="grid min-w-[42rem] grid-cols-7 border-b border-[var(--hairline)]">
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="px-2 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted"
+              className="px-2 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]"
             >
               {day}
             </div>
@@ -119,7 +122,7 @@ export function TaskCalendar({ tasks, onOpenTask }: Props) {
               return (
                 <div
                   key={cell.key}
-                  className="min-h-28 border-b border-r border-dashed border-hairline bg-canvas/40"
+                  className="min-h-28 border-b border-r border-[var(--hairline)] bg-[var(--bg)]/40"
                 />
               );
             }
@@ -129,11 +132,13 @@ export function TaskCalendar({ tasks, onOpenTask }: Props) {
             return (
               <div
                 key={cell.key}
-                className="min-h-28 border-b border-r border-dashed border-hairline p-2"
+                className="min-h-28 border-b border-r border-[var(--hairline)] p-2"
               >
                 <p
                   className={`inline-block font-mono text-[11px] ${
-                    isToday ? "bg-ink px-1 text-canvas" : "text-muted"
+                    isToday
+                      ? "bg-[var(--accent-soft)] px-1 text-[var(--accent)]"
+                      : "text-[var(--muted-foreground)]"
                   }`}
                 >
                   {cell.day}
@@ -144,10 +149,10 @@ export function TaskCalendar({ tasks, onOpenTask }: Props) {
                       <button
                         type="button"
                         onClick={() => onOpenTask(task.id)}
-                        className={`w-full truncate px-1.5 py-1 text-left text-[11px] ${
+                        className={`w-full truncate rounded-lg px-1.5 py-1 text-left text-[11px] transition-colors ${
                           task.status === "done"
-                            ? "text-muted line-through"
-                            : "bg-canvas text-ink hover:bg-ink hover:text-canvas"
+                            ? "text-[var(--muted-foreground)] line-through"
+                            : "bg-[var(--bg)] text-[var(--foreground)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
                         }`}
                       >
                         {task.title}
@@ -155,7 +160,7 @@ export function TaskCalendar({ tasks, onOpenTask }: Props) {
                     </li>
                   ))}
                   {dayTasks.length > 4 ? (
-                    <li className="px-1 text-[10px] text-muted">
+                    <li className="px-1 text-[10px] text-[var(--muted-foreground)]">
                       +{dayTasks.length - 4} more
                     </li>
                   ) : null}
@@ -167,8 +172,8 @@ export function TaskCalendar({ tasks, onOpenTask }: Props) {
       </div>
 
       {undated.length > 0 ? (
-        <div className="border border-dashed border-hairline bg-surface p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+        <div className="border border-[var(--hairline)] bg-[var(--surface)] p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
             No due date
           </p>
           <ul className="mt-2 flex flex-col gap-1">
@@ -177,7 +182,7 @@ export function TaskCalendar({ tasks, onOpenTask }: Props) {
                 <button
                   type="button"
                   onClick={() => onOpenTask(task.id)}
-                  className="text-sm text-muted hover:text-ink"
+                  className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 >
                   {task.title}
                 </button>

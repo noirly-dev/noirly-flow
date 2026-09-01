@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { Button } from "@noirly-dev/ui";
 import { FlowBusyScreen } from "@/src/components/FlowBusyScreen";
 
 export function SignOutButton() {
@@ -22,14 +24,16 @@ export function SignOutButton() {
       {busy
         ? createPortal(<FlowBusyScreen label="Signing out" />, document.body)
         : null}
-      <button
-        className="w-full cursor-pointer border border-dashed border-hairline px-3 py-1.5 text-left text-sm text-muted hover:bg-ink hover:text-canvas"
+      <Button
         type="button"
+        variant="ghost"
+        className="w-full justify-start"
         onClick={() => void onSignOut()}
         disabled={busy}
       >
+        <LogOut size={16} />
         Sign out
-      </button>
+      </Button>
     </>
   );
 }

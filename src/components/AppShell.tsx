@@ -1,12 +1,26 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import {
+  Activity,
+  Inbox,
+  Kanban,
+  Search,
+  Settings,
+  Users,
+} from "lucide-react";
+import {
+  AppShell as UIShell,
+  cn,
+  type AppNavItem,
+} from "@noirly-dev/ui";
 import { SignOutButton } from "@/src/features/auth/SignOutButton";
 import { CommandPalette } from "@/src/features/command-palette/CommandPalette";
 import { CreateTeamWorkspace } from "@/src/features/workspace/CreateTeamWorkspace";
-import { NavLink, useOptimisticPath } from "@/src/components/NavLink";
+import { useOptimisticPath } from "@/src/components/NavLink";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import { useUIStore, readLastWorkspaceId } from "@/src/stores/ui-store";
@@ -21,17 +35,38 @@ type Props = {
   children: ReactNode;
 };
 
-function navClass(active: boolean) {
-  return `block cursor-pointer px-3 py-2 text-sm ${
+function SidebarBrand() {
+  return (
+    <div className="flex items-center gap-3.5">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-soft)] p-1">
+        <Image
+          src="/logo-dark.png"
+          alt=""
+          width={40}
+          height={40}
+          className="h-9 w-9"
+          priority
+        />
+      </div>
+      <div>
+        <p className="font-display text-sm font-semibold">Noirly Flow</p>
+        <p className="text-xs text-[var(--muted-foreground)]">Workspace</p>
+      </div>
+    </div>
+  );
+}
+
+function workspaceLinkClass(active: boolean) {
+  return cn(
+    "flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors",
     active
-      ? "bg-ink text-canvas"
-      : "text-muted hover:bg-ink hover:text-canvas"
-  }`;
+      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+      : "text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
+  );
 }
 
 export function AppShell({ user, children }: Props) {
   const path = useOptimisticPath();
-  const [open, setOpen] = useState(false);
   const lastWorkspaceId = useUIStore((state) => state.lastWorkspaceId);
   const setLastWorkspaceId = useUIStore((state) => state.setLastWorkspaceId);
   const workspacesQuery = useQuery({
@@ -56,12 +91,6 @@ export function AppShell({ user, children }: Props) {
     }
   }, [pathWorkspaceId, lastWorkspaceId, setLastWorkspaceId]);
 
-  const isInbox = path.includes("/inbox");
-  const isMembers = path.includes("/members");
-  const isActivity = path.includes("/activity");
-  const isSettings = path.startsWith("/settings");
-  const isBoard =
-    Boolean(pathWorkspaceId) && !isInbox && !isMembers && !isActivity;
   const currentProjectId = path.includes("/p/")
     ? path.split("/p/")[1]?.split("/")[0]
     : null;
@@ -80,199 +109,123 @@ export function AppShell({ user, children }: Props) {
       : `/w/${workspaceId}`
     : "/";
 
+  const items: AppNavItem[] = [
+    {
+      href: workspaceId ? `/w/${workspaceId}/inbox` : "/inbox",
+      label: "Inbox",
+      icon: Inbox,
+      match: "prefix",
+    },
+    {
+      href: boardHref,
+      label: "Board",
+      icon: Kanban,
+      match: boardProjectId ? "prefix" : "exact",
+    },
+    {
+      href: "/settings",
+      label: "Settings",
+      icon: Settings,
+      match: "prefix",
+    },
+    ...(workspaceId
+      ? [
+          {
+            href: `/w/${workspaceId}/activity`,
+            label: "Activity",
+            icon: Activity,
+            match: "prefix" as const,
+          },
+          {
+            href: `/w/${workspaceId}/members`,
+            label: "Members",
+            icon: Users,
+            match: "prefix" as const,
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className="flex min-h-dvh">
-      {open ? (
-        <button
-          type="button"
-          aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-ink/50 md:hidden"
-          onClick={() => setOpen(false)}
-        />
-      ) : null}
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-64 flex-col border-r border-dashed border-hairline bg-canvas transition-transform md:sticky md:top-0 md:translate-x-0 ${
-          open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
+    <>
+      <UIShell
+        sidebar={{
+          brand: (
+            <div className="space-y-4">
+              <SidebarBrand />
+              <button
+                type="button"
+                onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
+                className="flex w-full items-center justify-between rounded-xl border border-[var(--hairline)] bg-[var(--surface-2)] px-3 py-2 text-left text-sm text-[var(--muted-foreground)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
+              >
+                <span className="flex items-center gap-2">
+                  <Search size={14} />
+                  Search
+                </span>
+                <span className="font-mono text-[10px]">⌘K</span>
+              </button>
+              <div>
+                <p className="px-1 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
+                  Workspaces
+                </p>
+                <ul className="flex flex-col gap-0.5">
+                  {workspaces.map((workspace) => {
+                    const href = `/w/${workspace.id}`;
+                    const active = workspaceId === workspace.id;
+                    return (
+                      <li key={workspace.id}>
+                        <Link href={href} className={workspaceLinkClass(active)}>
+                          <span className="truncate">{workspace.name}</span>
+                          <span className="font-mono text-[10px] uppercase tracking-wide opacity-60">
+                            {workspace.kind}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {workspacesQuery.isLoading && workspaces.length === 0 ? (
+                  <p className="px-3 py-2 text-xs text-[var(--muted-foreground)]">
+                    Loading…
+                  </p>
+                ) : null}
+                <CreateTeamWorkspace />
+              </div>
+            </div>
+          ),
+          items,
+          footer: (
+            <div className="space-y-3 border-t border-[var(--hairline)] pt-4">
+              <div>
+                <p className="truncate text-sm">{user.displayName}</p>
+                <p className="truncate font-mono text-[11px] text-[var(--muted-foreground)]">
+                  {user.email}
+                </p>
+              </div>
+              <SignOutButton />
+            </div>
+          ),
+        }}
+        header={{
+          brand: (
+            <p className="font-display text-sm font-semibold tracking-tight">
+              Flow
+            </p>
+          ),
+          actions: (
+            <button
+              type="button"
+              onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
+              className="rounded-lg border border-[var(--hairline)] px-3 py-1.5 font-mono text-sm text-[var(--muted-foreground)]"
+            >
+              ⌘K
+            </button>
+          ),
+        }}
       >
-        <div className="border-b border-dashed border-hairline px-5 py-5">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo-light.png"
-              alt=""
-              width={40}
-              height={40}
-              className="h-10 w-10 border border-dashed border-hairline dark:hidden"
-              priority
-            />
-            <Image
-              src="/logo-dark.png"
-              alt=""
-              width={40}
-              height={40}
-              className="hidden h-10 w-10 border border-dashed border-hairline dark:block"
-              priority
-            />
-            <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase">
-              Noirly Flow
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              useUIStore.getState().setCommandPaletteOpen(true)
-            }
-            className="mt-3 flex w-full cursor-pointer items-center justify-between border border-dashed border-hairline px-3 py-2 text-left text-sm text-muted hover:bg-ink hover:text-canvas"
-          >
-            <span>Search</span>
-            <span className="font-mono text-[10px]">⌘K</span>
-          </button>
-        </div>
-
-        <nav className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
-          <section>
-            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-              Workspace
-            </p>
-            <ul className="flex flex-col gap-px">
-              {workspaces.map((workspace) => {
-                const href = `/w/${workspace.id}`;
-                const active = workspaceId === workspace.id;
-                return (
-                  <li key={workspace.id}>
-                    <NavLink
-                      href={href}
-                      onClick={() => setOpen(false)}
-                      className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
-                        active
-                          ? "bg-ink text-canvas"
-                          : "text-muted hover:bg-ink hover:text-canvas"
-                      }`}
-                    >
-                      <span className="truncate">{workspace.name}</span>
-                      <span className="font-mono text-[10px] uppercase tracking-wide opacity-60">
-                        {workspace.kind}
-                      </span>
-                    </NavLink>
-                  </li>
-                );
-              })}
-            </ul>
-            {workspacesQuery.isLoading && workspaces.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-muted">Loading…</p>
-            ) : null}
-            <CreateTeamWorkspace />
-          </section>
-
-          <section>
-            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-              Navigate
-            </p>
-            <ul className="flex flex-col gap-px">
-              <li>
-                <NavLink
-                  href={
-                    workspaceId ? `/w/${workspaceId}/inbox` : "/inbox"
-                  }
-                  onClick={() => setOpen(false)}
-                  className={navClass(isInbox)}
-                >
-                  Inbox
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  href={boardHref}
-                  onClick={() => setOpen(false)}
-                  className={navClass(isBoard)}
-                >
-                  Board
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  href="/settings"
-                  onClick={() => setOpen(false)}
-                  className={navClass(isSettings)}
-                >
-                  Settings
-                </NavLink>
-              </li>
-              {workspaceId ? (
-                <li>
-                  <NavLink
-                    href={`/w/${workspaceId}/activity`}
-                    onClick={() => setOpen(false)}
-                    className={navClass(isActivity)}
-                  >
-                    Activity
-                  </NavLink>
-                </li>
-              ) : null}
-              {workspaceId ? (
-                <li>
-                  <NavLink
-                    href={`/w/${workspaceId}/members`}
-                    onClick={() => setOpen(false)}
-                    className={navClass(isMembers)}
-                  >
-                    Members
-                  </NavLink>
-                </li>
-              ) : null}
-            </ul>
-          </section>
-        </nav>
-
-        <div className="mt-auto shrink-0 border-t border-dashed border-hairline px-4 py-4">
-          <p className="truncate text-sm">{user.displayName}</p>
-          <p className="truncate font-mono text-[11px] text-muted">{user.email}</p>
-          <div className="mt-3">
-            <SignOutButton />
-          </div>
-        </div>
-      </aside>
-
-      <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-dashed border-hairline px-4 py-3 md:hidden">
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="cursor-pointer border border-dashed border-hairline px-3 py-1.5 text-sm"
-          >
-            Menu
-          </button>
-          <Image
-            src="/logo-light.png"
-            alt=""
-            width={28}
-            height={28}
-            className="h-7 w-7 dark:hidden"
-          />
-          <Image
-            src="/logo-dark.png"
-            alt=""
-            width={28}
-            height={28}
-            className="hidden h-7 w-7 dark:block"
-          />
-          <p className="font-display text-sm font-bold tracking-[-0.04em] uppercase">
-            Flow
-          </p>
-          <button
-            type="button"
-            onClick={() =>
-              useUIStore.getState().setCommandPaletteOpen(true)
-            }
-            className="ml-auto cursor-pointer border border-dashed border-hairline px-3 py-1.5 font-mono text-sm text-muted"
-          >
-            ⌘K
-          </button>
-        </header>
-        <div className="min-h-0 min-w-0 flex-1">{children}</div>
-      </div>
+        {children}
+      </UIShell>
       <CommandPalette workspaces={workspaces} />
-    </div>
+    </>
   );
 }

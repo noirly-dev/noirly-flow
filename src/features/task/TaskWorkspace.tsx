@@ -408,13 +408,13 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted">
+          <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-[var(--muted-foreground)]">
             {headerName}
           </p>
-          <h2 className="text-perforated mt-1 font-display text-4xl font-bold tracking-[-0.05em] uppercase md:text-5xl">
+          <h2 className="mt-1 font-display text-4xl font-semibold tracking-tight md:text-5xl">
             Tasks
           </h2>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             {openCount} open · {tasks.length} shown
             {!canWrite ? " · view only" : ""}
           </p>
@@ -429,8 +429,8 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
               onClick={() => setView("list")}
               className={`px-3 py-1.5 text-sm ${
                 view === "list"
-                  ? "bg-ink text-canvas"
-                  : "border border-dashed border-hairline text-muted hover:text-ink"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               }`}
             >
               List
@@ -441,8 +441,8 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
                 onClick={() => setView("board")}
                 className={`px-3 py-1.5 text-sm ${
                   view === "board"
-                    ? "bg-ink text-canvas"
-                    : "border border-dashed border-hairline text-muted hover:text-ink"
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`}
               >
                 Board
@@ -453,8 +453,8 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
               onClick={() => setView("calendar")}
               className={`px-3 py-1.5 text-sm ${
                 view === "calendar"
-                  ? "bg-ink text-canvas"
-                  : "border border-dashed border-hairline text-muted hover:text-ink"
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                  : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               }`}
             >
               Calendar
@@ -465,7 +465,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
 
       {canWrite ? (
       <form
-        className="flex flex-col gap-3 border border-dashed border-hairline bg-surface p-4 lg:flex-row lg:items-center"
+        className="flex flex-col gap-3 border border-[var(--hairline)] bg-[var(--surface)] p-4 lg:flex-row lg:items-center"
         onSubmit={(event) => {
           event.preventDefault();
           const nextTitle = title.trim();
@@ -481,12 +481,12 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Add a task…"
-          className="h-11 flex-1 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-ink"
+          className="h-11 flex-1 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--accent)]"
         />
         <select
           value={priority}
           onChange={(event) => setPriority(event.target.value as TaskPriority)}
-          className="h-11 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
+          className="h-11 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           {PRIORITY_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -498,29 +498,29 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           type="date"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
-          className="h-11 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
+          className="h-11 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         />
         <button
           type="submit"
           disabled={!title.trim()}
-          className="h-11 bg-ink px-4 text-sm font-semibold text-canvas disabled:opacity-50"
+          className="h-11 bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-50"
         >
           Add
         </button>
       </form>
       ) : (
-        <p className="border border-dashed border-hairline bg-surface px-4 py-3 text-sm text-muted">
+        <p className="border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
           You have view-only access. Ask an admin if you need to edit tasks.
         </p>
       )}
 
-      <div className="flex flex-col gap-3 border border-dashed border-hairline bg-surface p-4 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 border border-[var(--hairline)] bg-[var(--surface)] p-4 lg:flex-row lg:items-center">
         <input
           ref={searchInputRef}
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Search tasks… (/)"
-          className="h-10 flex-1 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-ink"
+          className="h-10 flex-1 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--accent)]"
         />
         <button
           type="button"
@@ -528,8 +528,8 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           disabled={!meQuery.data?.user.id}
           className={`h-10 px-3 text-sm disabled:opacity-50 ${
             assignedToMe
-              ? "bg-ink text-canvas"
-              : "border border-dashed border-hairline text-muted hover:text-ink"
+              ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+              : "border border-[var(--hairline)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           }`}
         >
           Assigned to me
@@ -539,7 +539,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setStatusFilter(event.target.value as TaskStatus | "")
           }
-          className="h-10 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
+          className="h-10 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">Any status</option>
           {STATUS_OPTIONS.map((option) => (
@@ -553,7 +553,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setPriorityFilter(event.target.value as TaskPriority | "")
           }
-          className="h-10 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
+          className="h-10 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           <option value="">Any priority</option>
           {PRIORITY_OPTIONS.map((option) => (
@@ -567,7 +567,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
           onChange={(event) =>
             setDueFilter(event.target.value as DuePreset | "")
           }
-          className="h-10 border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
+          className="h-10 border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
         >
           {DUE_FILTERS.map((option) => (
             <option key={option.value || "any"} value={option.value}>
@@ -586,7 +586,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
               setDueFilter("");
               setAssignedToMe(false);
             }}
-            className="h-10 border border-dashed border-hairline px-3 text-sm text-muted hover:text-ink"
+            className="h-10 border border-[var(--hairline)] px-3 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           >
             Clear
           </button>
@@ -594,15 +594,15 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       </div>
 
       {error ? (
-        <p className="text-sm text-ink" role="alert">
+        <p className="text-sm text-[var(--foreground)]" role="alert">
           {error}
         </p>
       ) : null}
 
       {tasksQuery.isLoading ? (
-        <p className="text-sm text-muted">Loading tasks…</p>
+        <p className="text-sm text-[var(--muted-foreground)]">Loading tasks…</p>
       ) : tasksQuery.isError ? (
-        <p className="text-sm text-ink">Could not load tasks.</p>
+        <p className="text-sm text-[var(--foreground)]">Could not load tasks.</p>
       ) : view === "list" ? (
         <TaskList
           tasks={tasks}
@@ -629,7 +629,7 @@ export function TaskWorkspace({ workspaceId, projectId, projectName }: Props) {
       ) : view === "calendar" ? (
         <TaskCalendar tasks={tasks} onOpenTask={openTask} />
       ) : !projectId ? (
-        <p className="text-sm text-ink">No project available for board.</p>
+        <p className="text-sm text-[var(--foreground)]">No project available for board.</p>
       ) : (
         <TaskBoard
           projectId={projectId}
@@ -681,14 +681,14 @@ function TaskList({
 }) {
   if (tasks.length === 0) {
     return (
-      <p className="border border-dashed border-hairline px-4 py-10 text-center text-sm text-muted">
+      <p className="border border-[var(--hairline)] px-4 py-10 text-center text-sm text-[var(--muted-foreground)]">
         {emptyLabel}
       </p>
     );
   }
 
   return (
-    <ul className="divide-y divide-dashed divide-hairline border border-dashed border-hairline bg-surface">
+    <ul className="divide-y divide-dashed divide-[var(--hairline)] border border-[var(--hairline)] bg-[var(--surface)]">
       {tasks.map((task) => (
         <li
           key={task.id}
@@ -700,14 +700,14 @@ function TaskList({
               onClick={() => onOpenTask(task.id)}
               className={`truncate text-left text-sm ${
                 task.status === "done" || task.status === "canceled"
-                  ? "text-muted line-through"
-                  : "text-ink hover:text-ink"
+                  ? "text-[var(--muted-foreground)] line-through"
+                  : "text-[var(--foreground)] hover:text-[var(--foreground)]"
               }`}
             >
               {task.title}
             </button>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <p className="font-mono text-[11px] uppercase tracking-wide text-muted">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">
                 {task.priority === "none" ? "no priority" : task.priority}
               </p>
               <TaskDueBadge dueAt={task.dueAt} />
@@ -722,7 +722,7 @@ function TaskList({
               onChange={(event) =>
                 onStatusChange(task.id, event.target.value as TaskStatus)
               }
-              className="h-9 border border-dashed border-hairline bg-canvas px-2 text-xs text-ink disabled:opacity-50"
+              className="h-9 border border-[var(--hairline)] bg-[var(--bg)] px-2 text-xs text-[var(--foreground)] disabled:opacity-50"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -736,7 +736,7 @@ function TaskList({
               onChange={(event) =>
                 onPriorityChange(task.id, event.target.value as TaskPriority)
               }
-              className="h-9 border border-dashed border-hairline bg-canvas px-2 text-xs text-ink disabled:opacity-50"
+              className="h-9 border border-[var(--hairline)] bg-[var(--bg)] px-2 text-xs text-[var(--foreground)] disabled:opacity-50"
             >
               {PRIORITY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -751,13 +751,13 @@ function TaskList({
               onChange={(event) =>
                 onDueChange(task.id, dateInputToIso(event.target.value))
               }
-              className="h-9 border border-dashed border-hairline bg-canvas px-2 text-xs text-ink disabled:opacity-50"
+              className="h-9 border border-[var(--hairline)] bg-[var(--bg)] px-2 text-xs text-[var(--foreground)] disabled:opacity-50"
             />
             {canWrite ? (
               <button
                 type="button"
                 onClick={() => onDelete(task.id)}
-                className="h-9 border border-dashed border-hairline px-3 text-xs text-muted hover:border-ink hover:text-ink"
+                className="h-9 border border-[var(--hairline)] px-3 text-xs text-[var(--muted-foreground)] hover:border-[var(--accent)] hover:text-[var(--foreground)]"
               >
                 Delete
               </button>

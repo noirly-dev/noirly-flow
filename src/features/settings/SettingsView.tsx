@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Button, Input, Label, Textarea } from "@noirly-dev/ui";
 import { api } from "@/src/lib/api-client";
 
 const TIMEZONES = [
@@ -72,60 +73,64 @@ export function SettingsView({
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-10">
       <div>
-        <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted">
+        <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-[var(--muted-foreground)]">
           Account
         </p>
-        <h1 className="text-perforated mt-2 font-display text-5xl font-bold tracking-[-0.05em] uppercase">
+        <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">
           Settings
         </h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Sign-in details live in Noirly Identity. Optional Flow fields stay in
           this product only.
         </p>
       </div>
 
-      <section className="border border-dashed border-hairline bg-surface p-5">
+      <section className="border border-[var(--hairline)] bg-[var(--surface)] p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
               Noirly Identity
             </p>
-            <h2 className="mt-1 text-sm font-medium text-ink">Account</h2>
+            <h2 className="mt-1 text-sm font-medium text-[var(--foreground)]">
+              Account
+            </h2>
           </div>
           {identityHome ? (
             <a
               href={`${identityHome}/account`}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-[11px] uppercase tracking-wide text-muted hover:text-ink"
+              className="font-mono text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
             >
               Open Identity →
             </a>
           ) : null}
         </div>
-        <dl className="mt-4 grid gap-3 font-mono text-xs text-muted">
-          <div className="flex justify-between gap-4 border-b border-dashed border-hairline pb-3">
+        <dl className="mt-4 grid gap-3 font-mono text-xs text-[var(--muted-foreground)]">
+          <div className="flex justify-between gap-4 border-b border-[var(--hairline)] pb-3">
             <dt>Name</dt>
-            <dd className="text-ink">{identityName || "—"}</dd>
+            <dd className="text-[var(--foreground)]">{identityName || "—"}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt>Email</dt>
-            <dd className="text-ink">{identityEmail || "—"}</dd>
+            <dd className="text-[var(--foreground)]">{identityEmail || "—"}</dd>
           </div>
         </dl>
-        <p className="mt-3 text-xs text-muted">
+        <p className="mt-3 text-xs text-[var(--muted-foreground)]">
           Password, Google login, and account details are managed in Identity.
           Open Identity uses your Identity session when you are already signed
           in there.
         </p>
       </section>
 
-      <section className="border border-dashed border-hairline bg-surface p-5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+      <section className="border border-[var(--hairline)] bg-[var(--surface)] p-5">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           Noirly Flow
         </p>
-        <h2 className="mt-1 text-sm font-medium text-ink">Profile</h2>
-        <p className="mt-1 text-xs text-muted">
+        <h2 className="mt-1 text-sm font-medium text-[var(--foreground)]">
+          Profile
+        </h2>
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
           Optional. Used in boards, comments, and members here. Other Noirly
           products keep their own profiles.
         </p>
@@ -137,32 +142,33 @@ export function SettingsView({
             saveMutation.mutate();
           }}
         >
-          <label className="space-y-1 text-xs text-muted">
-            Display name
-            <input
+          <div className="space-y-1">
+            <Label htmlFor="displayName">Display name</Label>
+            <Input
+              id="displayName"
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               placeholder={identityName || "How you appear in Flow"}
               maxLength={80}
-              className="h-10 w-full border border-dashed border-hairline bg-canvas px-3 text-sm text-ink outline-none placeholder:text-muted"
             />
-          </label>
-          <label className="space-y-1 text-xs text-muted">
-            Title
-            <input
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Role or title in this workspace"
               maxLength={80}
-              className="h-10 w-full border border-dashed border-hairline bg-canvas px-3 text-sm text-ink outline-none placeholder:text-muted"
             />
-          </label>
-          <label className="space-y-1 text-xs text-muted">
-            Timezone
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="timezone">Timezone</Label>
             <select
+              id="timezone"
               value={timezone}
               onChange={(event) => setTimezone(event.target.value)}
-              className="h-10 w-full border border-dashed border-hairline bg-canvas px-3 text-sm text-ink"
+              className="h-10 w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 text-sm text-[var(--foreground)]"
             >
               {TIMEZONES.map((zone) => (
                 <option key={zone.value || "none"} value={zone.value}>
@@ -170,33 +176,29 @@ export function SettingsView({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="space-y-1 text-xs text-muted">
-            Bio
-            <textarea
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea
+              id="bio"
               value={bio}
               onChange={(event) => setBio(event.target.value)}
               placeholder="A short note about how you work"
               maxLength={280}
               rows={3}
-              className="w-full resize-none border border-dashed border-hairline bg-canvas px-3 py-2 text-sm text-ink outline-none placeholder:text-muted"
             />
-          </label>
+          </div>
           {saveMutation.isError ? (
-            <p className="text-sm text-ink" role="alert">
+            <p className="text-sm text-[var(--foreground)]" role="alert">
               {(saveMutation.error as Error).message}
             </p>
           ) : null}
           <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={saveMutation.isPending}
-              className="h-10 bg-ink px-4 text-sm font-semibold text-canvas disabled:opacity-50"
-            >
+            <Button type="submit" disabled={saveMutation.isPending}>
               {saveMutation.isPending ? "Saving…" : "Save Flow profile"}
-            </button>
+            </Button>
             {saved ? (
-              <p className="font-mono text-[11px] uppercase tracking-wide text-muted">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">
                 Saved
               </p>
             ) : null}

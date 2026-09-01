@@ -23,13 +23,13 @@ export function MembersView({ workspaceId }: { workspaceId: string }) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-10">
       <div>
-        <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-muted">
+        <p className="font-mono text-[11px] tracking-[0.2em] uppercase text-[var(--muted-foreground)]">
           Team
         </p>
-        <h1 className="text-perforated mt-2 font-display text-5xl font-bold tracking-[-0.05em] uppercase">
+        <h1 className="mt-2 font-display text-5xl font-semibold tracking-tight">
           {name} members
         </h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Roles: owner, admin, member, viewer. Viewers cannot edit tasks.
         </p>
       </div>
@@ -40,7 +40,7 @@ export function MembersView({ workspaceId }: { workspaceId: string }) {
           canManage={canManage}
         />
       ) : (
-        <p className="text-sm text-muted">Loading members…</p>
+        <p className="text-sm text-[var(--muted-foreground)]">Loading members…</p>
       )}
     </main>
   );

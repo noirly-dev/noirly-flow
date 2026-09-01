@@ -13,9 +13,9 @@ import { can } from "@/src/core/permissions/can";
 import { FlowBusyScreen } from "@/src/components/FlowBusyScreen";
 
 const itemClass =
-  "flex cursor-pointer items-center justify-between px-3 py-2 text-sm text-ink data-[selected=true]:bg-ink data-[selected=true]:text-canvas";
+  "flex cursor-pointer items-center justify-between px-3 py-2 text-sm text-[var(--foreground)] data-[selected=true]:bg-[var(--accent-soft)] data-[selected=true]:text-[var(--accent)]";
 const headingClass =
-  "mb-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.16em] [&_[cmdk-group-heading]]:text-muted";
+  "mb-2 [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.16em] [&_[cmdk-group-heading]]:text-[var(--muted-foreground)]";
 
 type Props = {
   workspaces: Workspace[];
@@ -183,18 +183,18 @@ export function CommandPalette({ workspaces }: Props) {
         setOpen(next);
       }}
       label="Command palette"
-      overlayClassName="fixed inset-0 z-50 bg-ink/50"
-      contentClassName="fixed left-1/2 top-[12vh] z-50 w-[min(36rem,calc(100%-2rem))] -translate-x-1/2 overflow-hidden border border-dashed border-hairline bg-surface"
+      overlayClassName="fixed inset-0 z-50 bg-[var(--bg)]/60 backdrop-blur-sm"
+      contentClassName="fixed left-1/2 top-[12vh] z-50 w-[min(36rem,calc(100%-2rem))] -translate-x-1/2 overflow-hidden border border-[var(--hairline)] bg-[var(--surface)]"
     >
       <Command.Input
         value={query}
         onValueChange={setQuery}
         disabled={Boolean(busy)}
         placeholder="Create a task, search, or jump…"
-        className="h-12 w-full border-b border-dashed border-hairline bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted disabled:opacity-50"
+        className="h-12 w-full border-b border-[var(--hairline)] bg-transparent px-4 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] disabled:opacity-50"
       />
       <Command.List className="max-h-80 overflow-y-auto p-2">
-        <Command.Empty className="px-3 py-6 text-center text-sm text-muted">
+        <Command.Empty className="px-3 py-6 text-center text-sm text-[var(--muted-foreground)]">
           {searchQuery.isFetching
             ? "Searching…"
             : workspaceQuery.isFetching
@@ -203,8 +203,8 @@ export function CommandPalette({ workspaces }: Props) {
         </Command.Empty>
 
         {searchQuery.isFetching && debounced.length >= 2 ? (
-          <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-muted">
-            <span className="busy-dots mr-2 text-ink">···</span>
+          <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
+            <span className="busy-dots mr-2 text-[var(--foreground)]">···</span>
             Searching
           </p>
         ) : null}
@@ -218,7 +218,7 @@ export function CommandPalette({ workspaces }: Props) {
               className={itemClass}
             >
               <span>Create task “{createTitle}”</span>
-              <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
                 {workspaceName}
               </span>
             </Command.Item>
@@ -229,7 +229,7 @@ export function CommandPalette({ workspaces }: Props) {
               className={itemClass}
             >
               <span>Create project “{createTitle}”</span>
-              <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
                 {workspaceName}
               </span>
             </Command.Item>
@@ -263,7 +263,7 @@ export function CommandPalette({ workspaces }: Props) {
               className={itemClass}
             >
               <span>{workspace.name}</span>
-              <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
+              <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
                 {workspace.kind}
               </span>
             </Command.Item>
@@ -293,7 +293,7 @@ export function CommandPalette({ workspaces }: Props) {
                 className={itemClass}
               >
                 <span className="truncate">{task.title}</span>
-                <span className="font-mono text-[10px] uppercase tracking-wide text-muted">
+                <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
                   {task.status.replaceAll("_", " ")}
                 </span>
               </Command.Item>
@@ -302,16 +302,16 @@ export function CommandPalette({ workspaces }: Props) {
         ) : null}
       </Command.List>
       {error ? (
-        <p className="border-t border-dashed border-hairline px-4 py-2 text-xs text-ink">
+        <p className="border-t border-[var(--hairline)] px-4 py-2 text-xs text-[var(--foreground)]">
           {error}
         </p>
       ) : busy ? (
-        <p className="border-t border-dashed border-hairline px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-muted">
-          <span className="busy-dots mr-2 text-ink">···</span>
+        <p className="border-t border-[var(--hairline)] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
+          <span className="busy-dots mr-2 text-[var(--foreground)]">···</span>
           {busy}
         </p>
       ) : (
-        <p className="border-t border-dashed border-hairline px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-muted">
+        <p className="border-t border-[var(--hairline)] px-4 py-2 font-mono text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
           Esc to close · Enter to run
         </p>
       )}

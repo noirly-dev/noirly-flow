@@ -233,18 +233,18 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
       <button
         type="button"
         aria-label="Close task"
-        className="absolute inset-0 cursor-pointer bg-ink/50"
+        className="absolute inset-0 cursor-pointer bg-[var(--bg)]/60"
         onClick={onClose}
       />
-      <aside className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-dashed border-hairline bg-canvas">
-        <header className="flex items-center justify-between border-b border-dashed border-hairline px-5 py-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+      <aside className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-[var(--hairline)] bg-[var(--bg)]">
+        <header className="flex items-center justify-between border-b border-[var(--hairline)] px-5 py-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
             Task
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer text-sm text-muted hover:text-ink"
+            className="cursor-pointer text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
           >
             Close
           </button>
@@ -252,9 +252,9 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
 
         <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
           {!task && taskQuery.isPending ? (
-            <p className="text-sm text-muted">Loading…</p>
+            <p className="text-sm text-[var(--muted-foreground)]">Loading…</p>
           ) : taskQuery.isError && !task ? (
-            <p className="text-sm text-ink">Could not load task.</p>
+            <p className="text-sm text-[var(--foreground)]">Could not load task.</p>
           ) : task ? (
             <>
               <input
@@ -264,7 +264,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                 onBlur={() => {
                   if (title.trim()) persist({ title: title.trim() });
                 }}
-                className="w-full bg-transparent text-xl font-semibold text-ink outline-none read-only:text-muted"
+                className="w-full bg-transparent text-xl font-semibold text-[var(--foreground)] outline-none read-only:text-[var(--muted-foreground)]"
               />
 
               <textarea
@@ -274,11 +274,11 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                 onBlur={() => persist({ description: description.trim() || null })}
                 placeholder="Add a description…"
                 rows={3}
-                className="w-full resize-none border border-dashed border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-muted read-only:text-muted"
+                className="w-full resize-none border border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] read-only:text-[var(--muted-foreground)]"
               />
 
               <div className="grid grid-cols-2 gap-3">
-                <label className="space-y-1 text-xs text-muted">
+                <label className="space-y-1 text-xs text-[var(--muted-foreground)]">
                   Status
                   <select
                     value={status}
@@ -288,7 +288,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                       setStatus(next);
                       persist({ status: next });
                     }}
-                    className="h-10 w-full border border-dashed border-hairline bg-surface px-2 text-sm text-ink disabled:opacity-50"
+                    className="h-10 w-full border border-[var(--hairline)] bg-[var(--surface)] px-2 text-sm text-[var(--foreground)] disabled:opacity-50"
                   >
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -297,7 +297,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                     ))}
                   </select>
                 </label>
-                <label className="space-y-1 text-xs text-muted">
+                <label className="space-y-1 text-xs text-[var(--muted-foreground)]">
                   Priority
                   <select
                     value={priority}
@@ -307,7 +307,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                       setPriority(next);
                       persist({ priority: next });
                     }}
-                    className="h-10 w-full border border-dashed border-hairline bg-surface px-2 text-sm text-ink disabled:opacity-50"
+                    className="h-10 w-full border border-[var(--hairline)] bg-[var(--surface)] px-2 text-sm text-[var(--foreground)] disabled:opacity-50"
                   >
                     {PRIORITY_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -316,7 +316,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                     ))}
                   </select>
                 </label>
-                <label className="col-span-2 space-y-1 text-xs text-muted">
+                <label className="col-span-2 space-y-1 text-xs text-[var(--muted-foreground)]">
                   Project
                   <select
                     value={projectId}
@@ -326,7 +326,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                       setProjectId(next);
                       persist({ projectId: next || null });
                     }}
-                    className="h-10 w-full border border-dashed border-hairline bg-surface px-2 text-sm text-ink disabled:opacity-50"
+                    className="h-10 w-full border border-[var(--hairline)] bg-[var(--surface)] px-2 text-sm text-[var(--foreground)] disabled:opacity-50"
                   >
                     <option value="">Inbox</option>
                     {projects.map((project) => (
@@ -336,7 +336,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                     ))}
                   </select>
                 </label>
-                <label className="col-span-2 space-y-1 text-xs text-muted">
+                <label className="col-span-2 space-y-1 text-xs text-[var(--muted-foreground)]">
                   Due date
                   <input
                     type="date"
@@ -346,10 +346,10 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                       setDueDate(event.target.value);
                       persist({ dueAt: dateInputToIso(event.target.value) });
                     }}
-                    className="h-10 w-full border border-dashed border-hairline bg-surface px-2 text-sm text-ink disabled:opacity-50"
+                    className="h-10 w-full border border-[var(--hairline)] bg-[var(--surface)] px-2 text-sm text-[var(--foreground)] disabled:opacity-50"
                   />
                 </label>
-                <label className="col-span-2 space-y-1 text-xs text-muted">
+                <label className="col-span-2 space-y-1 text-xs text-[var(--muted-foreground)]">
                   Repeat
                   <select
                     value={recurrence?.frequency ?? ""}
@@ -362,7 +362,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                       setRecurrence(next);
                       persist({ recurrence: next });
                     }}
-                    className="h-10 w-full border border-dashed border-hairline bg-surface px-2 text-sm text-ink disabled:opacity-50"
+                    className="h-10 w-full border border-[var(--hairline)] bg-[var(--surface)] px-2 text-sm text-[var(--foreground)] disabled:opacity-50"
                   >
                     <option value="">Does not repeat</option>
                     <option value="daily">Daily</option>
@@ -372,7 +372,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
               </div>
 
               <section>
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                   Assignees
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -392,8 +392,8 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                         }}
                         className={`border px-3 py-1 text-xs disabled:opacity-50 ${
                           selected
-                            ? "border-ink bg-ink text-canvas"
-                            : "border-dashed border-hairline text-muted"
+                            ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                            : "border-[var(--hairline)] text-[var(--muted-foreground)]"
                         }`}
                       >
                         {member.displayName}
@@ -401,13 +401,13 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                     );
                   })}
                   {membersQuery.isLoading ? (
-                    <span className="text-xs text-muted">Loading members…</span>
+                    <span className="text-xs text-[var(--muted-foreground)]">Loading members…</span>
                   ) : null}
                 </div>
               </section>
 
               <section>
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                   Tags
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -427,8 +427,8 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                         }}
                         className={`border px-3 py-1 text-xs disabled:opacity-50 ${
                           selected
-                            ? "border-ink bg-ink text-canvas"
-                            : "border-dashed border-hairline text-muted"
+                            ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                            : "border-[var(--hairline)] text-[var(--muted-foreground)]"
                         }`}
                       >
                         {tag.name}
@@ -449,11 +449,11 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                     value={newTag}
                     onChange={(event) => setNewTag(event.target.value)}
                     placeholder="New tag"
-                    className="h-9 flex-1 border border-dashed border-hairline bg-surface px-3 text-sm text-ink outline-none"
+                    className="h-9 flex-1 border border-[var(--hairline)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none"
                   />
                   <button
                     type="submit"
-                    className="h-9 border border-dashed border-hairline px-3 text-xs text-muted"
+                    className="h-9 border border-[var(--hairline)] px-3 text-xs text-[var(--muted-foreground)]"
                   >
                     Add
                   </button>
@@ -462,7 +462,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
               </section>
 
               <section>
-                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                   Checklist
                 </p>
                 <ul className="space-y-2">
@@ -485,8 +485,8 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                       <span
                         className={`flex-1 text-sm ${
                           item.completed
-                            ? "text-muted line-through"
-                            : "text-ink"
+                            ? "text-[var(--muted-foreground)] line-through"
+                            : "text-[var(--foreground)]"
                         }`}
                       >
                         {item.title}
@@ -499,7 +499,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                             setChecklist(next);
                             persist({ checklist: next });
                           }}
-                          className="text-xs text-muted hover:text-ink"
+                          className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                         >
                           Remove
                         </button>
@@ -531,11 +531,11 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                     value={newCheck}
                     onChange={(event) => setNewCheck(event.target.value)}
                     placeholder="Add checklist item"
-                    className="h-9 flex-1 border border-dashed border-hairline bg-surface px-3 text-sm text-ink outline-none"
+                    className="h-9 flex-1 border border-[var(--hairline)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none"
                   />
                   <button
                     type="submit"
-                    className="h-9 border border-dashed border-hairline px-3 text-xs text-muted"
+                    className="h-9 border border-[var(--hairline)] px-3 text-xs text-[var(--muted-foreground)]"
                   >
                     Add
                   </button>
@@ -545,14 +545,14 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
 
               {!isSubtask ? (
                 <section>
-                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
                     Subtasks
                   </p>
                   <ul className="space-y-2">
                     {subtasks.map((subtask) => (
                       <li
                         key={subtask.id}
-                        className="flex items-center gap-2 border border-dashed border-hairline bg-surface px-3 py-2"
+                        className="flex items-center gap-2 border border-[var(--hairline)] bg-[var(--surface)] px-3 py-2"
                       >
                         <input
                           type="checkbox"
@@ -602,8 +602,8 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                         <span
                           className={`flex-1 text-sm ${
                             subtask.status === "done"
-                              ? "text-muted line-through"
-                              : "text-ink"
+                              ? "text-[var(--muted-foreground)] line-through"
+                              : "text-[var(--foreground)]"
                           }`}
                         >
                           {subtask.title}
@@ -611,9 +611,9 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                       </li>
                     ))}
                     {subtasksQuery.isLoading ? (
-                      <li className="text-xs text-muted">Loading…</li>
+                      <li className="text-xs text-[var(--muted-foreground)]">Loading…</li>
                     ) : subtasks.length === 0 ? (
-                      <li className="text-xs text-muted">No subtasks yet.</li>
+                      <li className="text-xs text-[var(--muted-foreground)]">No subtasks yet.</li>
                     ) : null}
                   </ul>
                   {canWrite ? (
@@ -629,12 +629,12 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
                         value={newSubtask}
                         onChange={(event) => setNewSubtask(event.target.value)}
                         placeholder="Add subtask"
-                        className="h-9 flex-1 border border-dashed border-hairline bg-surface px-3 text-sm text-ink outline-none"
+                        className="h-9 flex-1 border border-[var(--hairline)] bg-[var(--surface)] px-3 text-sm text-[var(--foreground)] outline-none"
                       />
                       <button
                         type="submit"
                         disabled={!newSubtask.trim()}
-                        className="h-9 border border-dashed border-hairline px-3 text-xs text-muted disabled:opacity-50"
+                        className="h-9 border border-[var(--hairline)] px-3 text-xs text-[var(--muted-foreground)] disabled:opacity-50"
                       >
                         Add
                       </button>
@@ -657,7 +657,7 @@ export function TaskDrawer({ workspaceId, taskId, initialTask, onClose }: Props)
             </>
           ) : null}
           {error ? (
-            <p className="text-sm text-ink" role="alert">
+            <p className="text-sm text-[var(--foreground)]" role="alert">
               {error}
             </p>
           ) : null}
@@ -682,7 +682,7 @@ export function TagChips({
       {selected.map((tag) => (
         <span
           key={tag.id}
-          className="border border-dashed border-hairline px-2 py-0.5 text-[10px]"
+          className="border border-[var(--hairline)] px-2 py-0.5 text-[10px]"
         >
           {tag.name}
         </span>

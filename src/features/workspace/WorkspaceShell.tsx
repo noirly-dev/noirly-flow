@@ -36,7 +36,7 @@ export function WorkspaceShell({
         <h1 className="font-display text-3xl font-bold tracking-[-0.04em] uppercase">
           Workspace unavailable
         </h1>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-[var(--muted-foreground)]">
           {(workspaceQuery.error as Error).message ||
             "This workspace could not be loaded."}
         </p>
@@ -47,7 +47,7 @@ export function WorkspaceShell({
   return (
     <WorkspaceRoleProvider role={role}>
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col lg:flex-row">
-        <div className="border-b border-dashed border-hairline p-3 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-52 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
+        <div className="border-b border-[var(--hairline)] p-3 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-52 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r">
           <ProjectNav workspaceId={workspaceId} />
         </div>
         <div className="min-h-0 min-w-0 flex-1">{children}</div>

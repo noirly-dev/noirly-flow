@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { Button } from "@noirly-dev/ui";
 import { auth } from "@/auth";
 import { DotMatrixNumeral } from "@/src/components/DotMatrix";
 import { NoirlyLoginButton } from "@/src/features/auth/NoirlyLoginButton";
@@ -59,40 +60,35 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <header className="flex items-center justify-between gap-6 border-b border-dashed border-hairline px-5 py-5 md:px-10">
+    <div className="relative flex min-h-dvh flex-col">
+      <div
+        className="aura pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2"
+        aria-hidden
+      />
+      <header className="relative z-10 flex items-center justify-between gap-6 border-b border-[var(--hairline)] px-5 py-5 md:px-10">
         <div className="flex items-center gap-3">
-          <Image
-            src="/logo-light.png"
-            alt=""
-            width={48}
-            height={48}
-            className="h-11 w-11 border border-dashed border-hairline dark:hidden md:h-12 md:w-12"
-            priority
-          />
-          <Image
-            src="/logo-dark.png"
-            alt=""
-            width={48}
-            height={48}
-            className="hidden h-11 w-11 border border-dashed border-hairline dark:block md:h-12 md:w-12"
-            priority
-          />
-          <p className="font-display text-lg font-bold tracking-[-0.04em] uppercase md:text-2xl">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--accent-soft)] p-1 md:h-12 md:w-12">
+            <Image
+              src="/logo-dark.png"
+              alt=""
+              width={48}
+              height={48}
+              className="h-9 w-9 md:h-10 md:w-10"
+              priority
+            />
+          </div>
+          <p className="font-display text-lg font-semibold tracking-tight md:text-2xl">
             Noirly Flow
           </p>
         </div>
-        <Link
-          href="/login"
-          className="font-mono text-[11px] font-semibold tracking-[0.16em] uppercase transition-colors hover:bg-ink hover:text-canvas"
-        >
-          Sign in
-        </Link>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/login">Sign in</Link>
+        </Button>
       </header>
 
-      <div className="flex flex-1 flex-col lg:flex-row">
-        <div className="pointer-events-none hidden w-10 shrink-0 items-center justify-center border-r border-dashed border-hairline lg:flex">
-          <span className="font-mono text-[10px] font-medium tracking-[0.28em] uppercase [writing-mode:vertical-rl] rotate-180">
+      <div className="relative z-10 flex flex-1 flex-col lg:flex-row">
+        <div className="pointer-events-none hidden w-10 shrink-0 items-center justify-center border-r border-[var(--hairline)] lg:flex">
+          <span className="font-mono text-[10px] font-medium tracking-[0.28em] uppercase text-[var(--muted-foreground)] [writing-mode:vertical-rl] rotate-180">
             flow.noirly.com
           </span>
         </div>
@@ -100,88 +96,76 @@ export default async function LandingPage() {
         <div className="flex min-w-0 flex-1 flex-col">
           <section className="relative overflow-hidden px-5 py-12 md:px-12 md:py-20">
             <div className="mb-8 flex items-center gap-5">
-              <Image
-                src="/logo-light.png"
-                alt=""
-                width={96}
-                height={96}
-                className="h-20 w-20 border border-dashed border-hairline dark:hidden md:h-24 md:w-24"
-                priority
-              />
-              <Image
-                src="/logo-dark.png"
-                alt=""
-                width={96}
-                height={96}
-                className="hidden h-20 w-20 border border-dashed border-hairline dark:block md:h-24 md:w-24"
-                priority
-              />
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--accent-soft)] p-2 md:h-24 md:w-24">
+                <Image
+                  src="/logo-dark.png"
+                  alt=""
+                  width={96}
+                  height={96}
+                  className="h-16 w-16 md:h-20 md:w-20"
+                  priority
+                />
+              </div>
               <div>
-                <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-muted">
+                <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-[var(--muted-foreground)]">
                   Workspace 1.0
                 </p>
-                <p className="mt-2 font-mono text-[10px] tracking-[0.14em] uppercase text-muted">
+                <p className="mt-2 font-mono text-[10px] tracking-[0.14em] uppercase text-[var(--muted-foreground)]">
                   Plan. Execute. Ship.
                 </p>
               </div>
             </div>
-            <h1 className="text-perforated mt-4 max-w-[10ch] font-display text-[18vw] leading-[0.8] font-bold tracking-[-0.07em] uppercase md:text-[9rem]">
+            <h1 className="mt-4 max-w-[10ch] font-display text-[18vw] leading-[0.8] font-semibold tracking-tight md:text-[9rem]">
               Flow
             </h1>
-            <DotMatrixNumeral className="mt-6 block text-5xl md:text-7xl">
+            <DotMatrixNumeral className="mt-6 block text-5xl text-[var(--accent)] md:text-7xl">
               1.0
             </DotMatrixNumeral>
           </section>
 
-          <section className="bg-panel px-5 py-10 text-panel-ink md:px-12 md:py-14">
-            <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-panel-ink/50">
+          <section className="border-t border-[var(--hairline)] bg-[var(--surface-2)] px-5 py-10 md:px-12 md:py-14">
+            <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--muted-foreground)]">
               Task management
             </p>
-            <p className="mt-4 max-w-2xl font-display text-2xl leading-snug font-medium tracking-[-0.03em] md:text-4xl">
+            <p className="mt-4 max-w-2xl font-display text-2xl leading-snug font-medium tracking-tight md:text-4xl">
               Boards, workspaces, and realtime collaboration for Noirly
               products — signed in through Noirly Identity.
             </p>
             <div className="mt-8 flex max-w-sm flex-col gap-3">
               <NoirlyLoginButton redirectTo="/" />
-              <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-panel-ink/50">
+              <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-[var(--muted-foreground)]">
                 Opens Identity in a secure popup
               </p>
             </div>
           </section>
 
-          <section className="relative border-t border-dashed border-hairline">
-            <div className="relative min-h-[200px] w-full bg-surface md:min-h-[280px]">
-              <Image
-                src="/feature-light.png"
-                alt="Noirly Flow"
-                fill
-                className="object-contain p-8 dark:hidden md:p-12"
-                sizes="100vw"
-                priority
-              />
+          <section className="relative border-t border-[var(--hairline)]">
+            <div className="relative min-h-[200px] w-full bg-[var(--surface)] md:min-h-[280px]">
               <Image
                 src="/feature-dark.png"
                 alt="Noirly Flow"
                 fill
-                className="hidden object-contain p-8 dark:block md:p-12"
+                className="object-contain p-8 md:p-12"
                 sizes="100vw"
                 priority
               />
             </div>
           </section>
 
-          <section className="grid gap-0 border-t border-dashed border-hairline md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-0 border-t border-[var(--hairline)] md:grid-cols-2 xl:grid-cols-3">
             {features.map((item) => (
               <div
                 key={item.index}
-                className="flex min-h-44 flex-col justify-between gap-6 border-b border-r border-dashed border-hairline px-5 py-8 md:px-8"
+                className="flex min-h-44 flex-col justify-between gap-6 border-b border-r border-[var(--hairline)] px-5 py-8 md:px-8"
               >
-                <DotMatrixNumeral className="text-3xl">{item.index}</DotMatrixNumeral>
+                <DotMatrixNumeral className="text-3xl text-[var(--accent)]">
+                  {item.index}
+                </DotMatrixNumeral>
                 <div>
-                  <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">
+                  <h2 className="font-display text-xl font-semibold tracking-tight">
                     {item.title}
                   </h2>
-                  <p className="mt-1 font-mono text-[11px] tracking-[0.08em] uppercase opacity-60">
+                  <p className="mt-1 font-mono text-[11px] tracking-[0.08em] uppercase text-[var(--muted-foreground)]">
                     {item.copy}
                   </p>
                 </div>
@@ -189,21 +173,14 @@ export default async function LandingPage() {
             ))}
           </section>
 
-          <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-dashed border-hairline px-5 py-6 font-mono text-[10px] tracking-[0.16em] uppercase text-muted md:px-12">
+          <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--hairline)] px-5 py-6 font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--muted-foreground)] md:px-12">
             <span className="flex items-center gap-3">
-              <Image
-                src="/logo-light.png"
-                alt=""
-                width={28}
-                height={28}
-                className="h-7 w-7 dark:hidden"
-              />
               <Image
                 src="/logo-dark.png"
                 alt=""
                 width={28}
                 height={28}
-                className="hidden h-7 w-7 dark:block"
+                className="h-7 w-7"
               />
               Noirly Flow
             </span>

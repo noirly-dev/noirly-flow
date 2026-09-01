@@ -28,23 +28,23 @@ export function ActivityFeed({ workspaceId, taskId, members }: Props) {
 
   return (
     <section>
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
         Activity
       </p>
       {activityQuery.isLoading ? (
-        <p className="text-xs text-muted">Loading activity…</p>
+        <p className="text-xs text-[var(--muted-foreground)]">Loading activity…</p>
       ) : items.length === 0 ? (
-        <p className="text-xs text-muted">No activity yet.</p>
+        <p className="text-xs text-[var(--muted-foreground)]">No activity yet.</p>
       ) : (
         <ol className="space-y-2">
           {items.map((event) => (
             <li key={event.id} className="flex flex-col gap-0.5">
-              <p className="text-xs text-muted">
+              <p className="text-xs text-[var(--muted-foreground)]">
                 {describeActivity(event, members)}
               </p>
               <time
                 dateTime={event.createdAt}
-                className="font-mono text-[10px] text-muted"
+                className="font-mono text-[10px] text-[var(--muted-foreground)]"
               >
                 {new Date(event.createdAt).toLocaleString()}
               </time>
@@ -57,7 +57,7 @@ export function ActivityFeed({ workspaceId, taskId, members }: Props) {
           type="button"
           onClick={() => void activityQuery.fetchNextPage()}
           disabled={activityQuery.isFetchingNextPage}
-          className="mt-3 text-xs text-ink hover:underline disabled:opacity-50"
+          className="mt-3 text-xs text-[var(--foreground)] hover:underline disabled:opacity-50"
         >
           {activityQuery.isFetchingNextPage ? "Loading…" : "Load more"}
         </button>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { Button, Input, cn } from "@noirly-dev/ui";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import type { Project, Workspace } from "@/src/core/sync/types";
@@ -19,6 +20,15 @@ type WorkspacePayload = {
 type Props = {
   workspaceId: string;
 };
+
+function navClass(active: boolean) {
+  return cn(
+    "block cursor-pointer truncate rounded-xl px-3 py-2 text-sm transition-colors",
+    active
+      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+      : "text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
+  );
+}
 
 export function ProjectNav({ workspaceId }: Props) {
   const path = useOptimisticPath();
@@ -71,14 +81,14 @@ export function ProjectNav({ workspaceId }: Props) {
   return (
     <section>
       <div className="flex items-center justify-between px-2 pb-2">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
           Projects
         </p>
         {canWrite ? (
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="cursor-pointer text-xs text-ink hover:underline"
+            className="cursor-pointer text-xs text-[var(--foreground)] hover:underline"
           >
             {open ? "Cancel" : "New"}
           </button>
@@ -93,31 +103,24 @@ export function ProjectNav({ workspaceId }: Props) {
             createMutation.mutate();
           }}
         >
-          <input
+          <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Project name"
-            className="h-8 flex-1 border border-dashed border-hairline bg-surface px-2 text-xs text-ink outline-none"
+            className="h-8 flex-1 text-xs"
           />
-          <button
+          <Button
             type="submit"
+            size="sm"
             disabled={createMutation.isPending || !name.trim()}
-            className="h-8 cursor-pointer bg-ink px-2 text-xs font-semibold text-canvas disabled:opacity-50"
           >
             {createMutation.isPending ? "Saving…" : "Add"}
-          </button>
+          </Button>
         </form>
       ) : null}
       <ul className="flex flex-col gap-1">
         <li>
-          <NavLink
-            href={inboxHref}
-            className={`block cursor-pointer truncate px-3 py-2 text-sm ${
-              inboxActive
-                ? "bg-ink text-canvas"
-                : "text-muted hover:bg-ink hover:text-canvas"
-            }`}
-          >
+          <NavLink href={inboxHref} className={navClass(inboxActive)}>
             Inbox
           </NavLink>
         </li>
@@ -126,25 +129,20 @@ export function ProjectNav({ workspaceId }: Props) {
           const active = activeProjectId === project.id;
           return (
             <li key={project.id}>
-              <NavLink
-                href={href}
-                className={`block cursor-pointer truncate px-3 py-2 text-sm ${
-                  active
-                    ? "bg-ink text-canvas"
-                    : "text-muted hover:bg-ink hover:text-canvas"
-                }`}
-              >
+              <NavLink href={href} className={navClass(active)}>
                 {project.name}
               </NavLink>
             </li>
           );
         })}
         {workspaceQuery.isLoading && projects.length === 0 ? (
-          <li className="px-3 py-2 text-xs text-muted">Loading…</li>
+          <li className="px-3 py-2 text-xs text-[var(--muted-foreground)]">
+            Loading…
+          </li>
         ) : null}
       </ul>
       {createMutation.isError ? (
-        <p className="px-2 pt-2 text-xs text-ink">
+        <p className="px-2 pt-2 text-xs text-[var(--foreground)]">
           {(createMutation.error as Error).message}
         </p>
       ) : null}

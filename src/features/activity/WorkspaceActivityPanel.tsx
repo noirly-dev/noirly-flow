@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { Button } from "@noirly-dev/ui";
 import { ActivityFeed } from "@/src/features/activity/ActivityFeed";
 import { activityToCsv } from "@/src/features/activity/format";
 import { api } from "@/src/lib/api-client";
@@ -53,24 +54,25 @@ export function WorkspaceActivityPanel({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">
+        <p className="text-sm text-[var(--muted-foreground)]">
           Workspace-wide create, update, assign, and comment history.
         </p>
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => exportMutation.mutate()}
           disabled={exportMutation.isPending || membersQuery.isLoading}
-          className="h-9 border border-dashed border-hairline px-3 text-sm text-ink hover:border-ink disabled:opacity-50"
         >
           {exportMutation.isPending ? "Exporting…" : "Export CSV"}
-        </button>
+        </Button>
       </div>
       {error ? (
-        <p className="text-sm text-ink" role="alert">
+        <p className="text-sm text-[var(--foreground)]" role="alert">
           {error}
         </p>
       ) : null}
-      <div className="border border-dashed border-hairline bg-surface p-5">
+      <div className="border border-[var(--hairline)] bg-[var(--surface)] p-5">
         <ActivityFeed
           workspaceId={workspaceId}
           members={membersQuery.data?.members ?? []}

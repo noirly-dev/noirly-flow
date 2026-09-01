@@ -75,7 +75,7 @@ export function dueRange(preset: DuePreset | "" | undefined): {
 }
 
 export function dueClassName(tone: DueTone | null): string {
-  if (tone === "overdue") return "bg-ink px-1 text-canvas";
-  if (tone === "today") return "text-ink";
-  return "text-muted";
+  if (tone === "overdue") return "bg-[var(--accent-soft)] px-1 text-[var(--accent)]";
+  if (tone === "today") return "text-[var(--foreground)]";
+  return "text-[var(--muted-foreground)]";
 }

@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Button, Textarea } from "@noirly-dev/ui";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import type { Comment } from "@/src/core/sync/types";
@@ -78,32 +79,32 @@ export function CommentThread({
 
   return (
     <section>
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--muted-foreground)]">
         Comments
       </p>
       <ul className="space-y-3">
         {comments.map((comment) => (
-          <li key={comment.id} className="border border-dashed border-hairline bg-surface px-3 py-2">
+          <li key={comment.id} className="border border-[var(--hairline)] bg-[var(--surface)] px-3 py-2">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-xs font-medium text-ink">
+              <p className="text-xs font-medium text-[var(--foreground)]">
                 {memberName(members, comment.authorId)}
               </p>
               <time
                 dateTime={comment.createdAt}
-                className="font-mono text-[10px] text-muted"
+                className="font-mono text-[10px] text-[var(--muted-foreground)]"
               >
                 {new Date(comment.createdAt).toLocaleString()}
               </time>
             </div>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
+            <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--muted-foreground)]">
               {comment.body}
             </p>
           </li>
         ))}
         {commentsQuery.isLoading ? (
-          <li className="text-xs text-muted">Loading comments…</li>
+          <li className="text-xs text-[var(--muted-foreground)]">Loading comments…</li>
         ) : comments.length === 0 ? (
-          <li className="text-xs text-muted">No comments yet.</li>
+          <li className="text-xs text-[var(--muted-foreground)]">No comments yet.</li>
         ) : null}
       </ul>
       {canWrite ? (
@@ -115,28 +116,23 @@ export function CommentThread({
           createMutation.mutate(body.trim());
         }}
       >
-        <textarea
+        <Textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
           placeholder="Write a comment…"
           rows={3}
-          className="w-full resize-none border border-dashed border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-muted"
         />
         <div className="flex items-center justify-between">
           {error ? (
-            <p className="text-xs text-ink" role="alert">
+            <p className="text-xs text-[var(--foreground)]" role="alert">
               {error}
             </p>
           ) : (
             <span />
           )}
-          <button
-            type="submit"
-            disabled={!body.trim()}
-            className="h-8 bg-ink px-3 text-xs font-semibold text-canvas disabled:opacity-50"
-          >
+          <Button type="submit" size="sm" disabled={!body.trim()}>
             Comment
-          </button>
+          </Button>
         </div>
       </form>
       ) : null}

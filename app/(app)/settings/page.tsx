@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { SettingsView } from "@/src/features/settings/SettingsView";
+import { requireFlowSession } from "@/src/server/api/http";
 
 export default async function SettingsPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const ctx = await requireFlowSession();
 
   const identityUrl = (
     process.env.NEXT_PUBLIC_IDENTITY_URL ??
@@ -16,8 +13,8 @@ export default async function SettingsPage() {
 
   return (
     <SettingsView
-      identityName={session.user.name || ""}
-      identityEmail={session.user.email || ""}
+      identityName={ctx.displayName}
+      identityEmail={ctx.email}
       identityUrl={identityUrl}
     />
   );

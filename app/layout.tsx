@@ -36,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <NoirlyHead themeId="gold" />
       </head>
       <body className={`${noirlyFontClassName} flex min-h-dvh flex-col antialiased`}>
-        <NoirlyExperience mark="Noirly Flow">
+        <NoirlyExperience mark="Noirly Flow" pageTransition={false}>
           <AppProviders>{children}</AppProviders>
         </NoirlyExperience>
       </body>

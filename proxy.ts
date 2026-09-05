@@ -34,6 +34,10 @@ export const proxy = auth((request) => {
     return NextResponse.redirect(new URL("/", request.nextUrl.origin));
   }
 
+  if (request.auth && isLanding) {
+    return NextResponse.redirect(new URL("/inbox", request.nextUrl.origin));
+  }
+
   return NextResponse.next();
 });
 

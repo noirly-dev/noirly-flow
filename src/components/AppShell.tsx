@@ -21,6 +21,7 @@ import { useOptimisticPath } from "@/src/components/NavLink";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import { useUIStore, readLastWorkspaceId } from "@/src/stores/ui-store";
+import type { Workspace } from "@/src/core/sync/types";
 
 export type ShellUser = {
   displayName: string;
@@ -29,6 +30,7 @@ export type ShellUser = {
 
 type Props = {
   user: ShellUser;
+  initialWorkspaces?: Workspace[];
   children: ReactNode;
 };
 
@@ -41,13 +43,16 @@ function workspaceLinkClass(active: boolean) {
   ].join(" ");
 }
 
-export function AppShell({ user, children }: Props) {
+export function AppShell({ user, initialWorkspaces, children }: Props) {
   const path = useOptimisticPath();
   const lastWorkspaceId = useUIStore((state) => state.lastWorkspaceId);
   const setLastWorkspaceId = useUIStore((state) => state.setLastWorkspaceId);
   const workspacesQuery = useQuery({
     queryKey: qk.workspaces,
     queryFn: () => api.listWorkspaces(),
+    initialData: initialWorkspaces
+      ? { workspaces: initialWorkspaces }
+      : undefined,
     staleTime: 60_000,
   });
   const workspaces = workspacesQuery.data?.workspaces ?? [];

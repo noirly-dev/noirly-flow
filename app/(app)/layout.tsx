@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AppShell } from "@/src/components/AppShell";
+import {
+  listSessionWorkspaces,
+  requireFlowSession,
+} from "@/src/server/api/http";
 
 export default async function AppGroupLayout({
   children,
@@ -12,12 +16,15 @@ export default async function AppGroupLayout({
     redirect("/login");
   }
 
+  const [ctx, workspaces] = await Promise.all([
+    requireFlowSession(),
+    listSessionWorkspaces(),
+  ]);
+
   return (
     <AppShell
-      user={{
-        displayName: session.user.name || "You",
-        email: session.user.email ?? "",
-      }}
+      user={{ displayName: ctx.displayName, email: ctx.email }}
+      initialWorkspaces={workspaces}
     >
       {children}
     </AppShell>

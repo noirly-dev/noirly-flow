@@ -63,16 +63,12 @@ async function ensurePersonalWorkspace(
       kind: "personal",
     });
     if (workspace) {
-      const project = await Project.findOne({
-        workspaceId: workspace._id,
-        deletedAt: null,
-      })
-        .sort({ createdAt: 1 })
-        .lean();
+      // Hot path: do not look up the default project on every nav hop.
+      // Callers that need it can load projects via the workspace API.
       return {
         workspace,
-        projectId: project?._id.toString() ?? null,
-        projectName: project?.name ?? null,
+        projectId: null,
+        projectName: null,
       };
     }
   }
@@ -133,7 +129,12 @@ async function ensurePersonalWorkspace(
   };
 }
 
-/** Upsert Flow user from Identity session and ensure a personal workspace exists. */
+/**
+ * Resolve the Flow user + personal workspace for an Identity session.
+ *
+ * Hot path is read-only: find the user, reuse the personal workspace, return.
+ * Writes only when the account is missing or profile fields actually changed.
+ */
 export async function ensureFlowAccount(
   sessionUser: BootstrapSessionUser,
 ): Promise<BootstrappedAccount> {
@@ -146,25 +147,33 @@ export async function ensureFlowAccount(
       sessionUser.email?.trim().toLowerCase() || `${sessionUser.id}@users.local`;
     const displayName =
       sessionUser.name?.trim() || email.split("@")[0] || "Noirly user";
+    const avatarUrl = sessionUser.image ?? null;
+    const emailVerified = Boolean(sessionUser.email);
 
-    const user = await FlowUser.findOneAndUpdate(
-      { identitySub: sessionUser.id },
-      {
-        $set: {
-          email,
-          displayName,
-          avatarUrl: sessionUser.image ?? null,
-          emailVerified: Boolean(sessionUser.email),
-        },
-        $setOnInsert: {
-          identitySub: sessionUser.id,
-        },
-      },
-      { upsert: true, returnDocument: "after" },
-    );
+    let user = await FlowUser.findOne({ identitySub: sessionUser.id });
 
     if (!user) {
-      throw new Error("Failed to upsert Flow user");
+      user = await FlowUser.create({
+        identitySub: sessionUser.id,
+        email,
+        displayName,
+        avatarUrl,
+        emailVerified,
+      });
+    } else {
+      const needsUpdate =
+        user.email !== email ||
+        user.displayName !== displayName ||
+        (user.avatarUrl ?? null) !== avatarUrl ||
+        user.emailVerified !== emailVerified;
+
+      if (needsUpdate) {
+        user.email = email;
+        user.displayName = displayName;
+        user.avatarUrl = avatarUrl;
+        user.emailVerified = emailVerified;
+        await user.save();
+      }
     }
 
     const { workspace, projectId, projectName } =

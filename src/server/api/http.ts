@@ -18,6 +18,13 @@ export type FlowSessionContext = {
   displayName: string;
 };
 
+export type PersonalWorkspaceSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  kind: "personal";
+};
+
 async function resolveFromBearer(
   accessToken: string,
 ): Promise<FlowSessionContext> {
@@ -57,62 +64,59 @@ async function resolveFromBearer(
   };
 }
 
-async function resolveFromCookieSession(): Promise<FlowSessionContext | null> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return null;
-  }
+/**
+ * One bootstrap + provider per request. Cookie sessions get a personal
+ * workspace; Bearer (mobile) gets ctx only. Layout, pages, and API routes
+ * share this so sidebar hops do not re-upsert the user.
+ */
+export const getSyncProvider = cache(async () => {
+  const headerStore = await headers();
+  const bearer = extractBearerToken(headerStore.get("authorization"));
 
-  const identitySub = session.user.id;
-  const existing = await withDb(async () =>
-    FlowUser.findOne({ identitySub }).lean(),
-  );
-
-  if (existing) {
+  if (bearer) {
+    const ctx = await resolveFromBearer(bearer);
     return {
-      identitySub: existing.identitySub,
-      userId: existing._id.toString(),
-      email: existing.email,
-      displayName: existing.displayName,
+      ctx,
+      sync: createMongoSyncProvider({ userId: ctx.userId }),
+      personal: null as PersonalWorkspaceSummary | null,
     };
   }
 
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new ApiError(401, "unauthorized", "Sign in required");
+  }
+
   const account = await ensureFlowAccount({
-    id: identitySub,
+    id: session.user.id,
     email: session.user.email,
     name: session.user.name,
     image: session.user.image,
   });
 
-  return {
+  const ctx: FlowSessionContext = {
     identitySub: account.user.identitySub,
     userId: account.user.id,
     email: account.user.email,
     displayName: account.user.displayName,
   };
-}
 
-export const requireFlowSession = cache(async (): Promise<FlowSessionContext> => {
-  const headerStore = await headers();
-  const bearer = extractBearerToken(headerStore.get("authorization"));
-  if (bearer) {
-    return resolveFromBearer(bearer);
-  }
-
-  const fromCookie = await resolveFromCookieSession();
-  if (fromCookie) {
-    return fromCookie;
-  }
-
-  throw new ApiError(401, "unauthorized", "Sign in required");
-});
-
-export const getSyncProvider = cache(async () => {
-  const ctx = await requireFlowSession();
   return {
     ctx,
     sync: createMongoSyncProvider({ userId: ctx.userId }),
+    personal: account.personalWorkspace as PersonalWorkspaceSummary,
   };
+});
+
+export const requireFlowSession = cache(async (): Promise<FlowSessionContext> => {
+  const { ctx } = await getSyncProvider();
+  return ctx;
+});
+
+/** Sidebar workspace list — request-cached so layout is the only payer. */
+export const listSessionWorkspaces = cache(async () => {
+  const { sync } = await getSyncProvider();
+  return sync.listWorkspaces();
 });
 
 export class ApiError extends Error {

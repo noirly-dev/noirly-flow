@@ -6,7 +6,6 @@ import { Button } from "@noirly-dev/ui";
 import { auth } from "@/auth";
 import { DotMatrixNumeral } from "@/src/components/DotMatrix";
 import { NoirlyLoginButton } from "@/src/features/auth/NoirlyLoginButton";
-import { ensureFlowAccount } from "@/src/server/auth/bootstrap";
 
 export const metadata: Metadata = {
   title: "Noirly Flow",
@@ -50,13 +49,8 @@ const features = [
 export default async function LandingPage() {
   const session = await auth();
   if (session?.user?.id) {
-    const account = await ensureFlowAccount({
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      image: session.user.image,
-    });
-    redirect(`/w/${account.personalWorkspace.id}`);
+    // Proxy also redirects signed-in `/` → `/inbox`; this is the RSC fallback.
+    redirect("/inbox");
   }
 
   return (

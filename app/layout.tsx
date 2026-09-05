@@ -2,29 +2,22 @@ import type { Metadata } from "next";
 import { NoirlyHead, noirlyFontClassName } from "@noirly-dev/ui";
 import { NoirlyExperience } from "@noirly-dev/ui/experience";
 import { AppProviders } from "@/src/components/AppProviders";
+import { FLOW_LOGO_URL } from "@/src/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Noirly Flow",
   description: "Task and project management for the Noirly ecosystem",
   icons: {
-    icon: [
-      {
-        url: "/logo-dark.png",
-        type: "image/png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/logo-light.png",
-        type: "image/png",
-        media: "(prefers-color-scheme: light)",
-      },
-    ],
-    apple: "/logo-dark.png",
+    icon: [{ url: FLOW_LOGO_URL, type: "image/svg+xml" }],
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"

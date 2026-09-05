@@ -18,6 +18,7 @@ import { SignOutButton } from "@/src/features/auth/SignOutButton";
 import { CommandPalette } from "@/src/features/command-palette/CommandPalette";
 import { CreateTeamWorkspace } from "@/src/features/workspace/CreateTeamWorkspace";
 import { useOptimisticPath } from "@/src/components/NavLink";
+import { ThemeControls } from "@/src/components/ThemeControls";
 import { api } from "@/src/lib/api-client";
 import { qk } from "@/src/core/sync/query-keys";
 import { useUIStore, readLastWorkspaceId } from "@/src/stores/ui-store";
@@ -178,14 +179,17 @@ export function AppShell({ user, initialWorkspaces, children }: Props) {
             </p>
           ),
           actions: (
-            <button
-              type="button"
-              onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--hairline)] font-mono text-sm text-[var(--muted-foreground)]"
-              aria-label="Open search"
-            >
-              ⌘K
-            </button>
+            <>
+              <ThemeControls size="sm" />
+              <button
+                type="button"
+                onClick={() => useUIStore.getState().setCommandPaletteOpen(true)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--hairline)] font-mono text-sm text-[var(--muted-foreground)]"
+                aria-label="Open search"
+              >
+                ⌘K
+              </button>
+            </>
           ),
         }}
       >
